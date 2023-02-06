@@ -38,7 +38,7 @@ DATA = []
 # }
 bank_id = {
     '11500' : '1: 49',
-    '17300' : '1: 34',
+    '17300' : '1: 42',
     '10400' : '1: 37',
     '13700' : '1: 44',
     '12600' : '1: 48',
@@ -369,7 +369,7 @@ def create_browser(user,lock):
     login_failed = 1
     while True:
         while True:
-            if login_failed > 5:
+            if login_failed > 4:
                 login_failed = True
                 break
             try:
@@ -386,12 +386,12 @@ def create_browser(user,lock):
                 login_failed = False
                 break
             except:
+                browser.get_screenshot_as_file(f"Errors{NAME.lower()}_{login_failed}.png")
                 browser.get("https://meroshare.cdsc.com.np/#/login")
                 login_failed += 1
                 with lock:
                     logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Problem Logging in {NAME}")
                     print(f"{datetime.now().strftime('%I:%M:%S')} :: Problem Logging in {NAME}")
-                
 
         if login_failed:
             companies_available = False
