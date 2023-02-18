@@ -27,6 +27,7 @@ def main(start_file=True):
         print('NEPSEALPHA :: Request successful!')
     except:
         print('NEPSEALPHA :: Request failed!')
+        return
     while True:
         try:
             browser.implicitly_wait(5)
