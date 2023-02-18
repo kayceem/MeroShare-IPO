@@ -386,7 +386,7 @@ def create_browser(user,lock):
                 login_failed = False
                 break
             except:
-                browser.get_screenshot_as_file(f"Errors{NAME.lower()}_{login_failed}.png")
+                browser.get_screenshot_as_file(f"Errors\{NAME.lower()}_{login_failed}.png")
                 browser.get("https://meroshare.cdsc.com.np/#/login")
                 login_failed += 1
                 with lock:
@@ -421,7 +421,7 @@ def create_browser(user,lock):
     return True
 
 
-def main():
+def main(default= False):
     user_data = []
     temp = []
     thread_list = []
@@ -431,24 +431,27 @@ def main():
     os.system('cls')
 #  Remove old files
     try:
-        for file in os.listdir(path):
-            os.remove(f"{path}\{file}")
+        os.remove(f"{path}\Results.txt")
+        os.remove(f"{path}\logs.txt")
     except:
         pass
-#  Asks user for wait time
-    try:
-        WAIT_TIME = int(input("Enter wait time between each user: "))
-        if WAIT_TIME < 3:
-            WAIT_TIME = 3
-        if WAIT_TIME > 10:
+    SINGLE_USER = ""
+    WAIT_TIME = 3
+    if not default:
+    #  Asks user for wait time
+        try:
+            WAIT_TIME = int(input("Enter wait time between each user: "))
+            if WAIT_TIME < 3:
+                WAIT_TIME = 3
+            if WAIT_TIME > 10:
+                WAIT_TIME = 10
+        except:
             WAIT_TIME = 10
-    except:
-        WAIT_TIME = 10
-    
+        
 
-# Asks is user wants to use only for single user
-    SINGLE_USER = (input("Enter the user you want to apply: ")).upper()
-    print()
+    # Asks is user wants to use only for single user
+        SINGLE_USER = (input("Enter the user you want to apply: ")).upper()
+        print()
 
 # Checks for key in key.key
     try:
@@ -502,8 +505,12 @@ def main():
         print()
         print(f"Completed :: {minutes:.0f} minutes | {seconds:.1f} seconds" )
         print()
-        input("Press Enter to Exit")
-        os.startfile(f"{DIR_PATH}\Results\logs.txt")
+        if not default:
+            input("Press Enter to Exit")
+            os.startfile(f"{DIR_PATH}\Results\logs.txt")
+        if default:
+            os.startfile(f"{DIR_PATH}\Results\Results.txt")
+
     return
 
 
