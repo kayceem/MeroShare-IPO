@@ -72,7 +72,7 @@ def update_file(results, NAME):
         if len(text):
             fp.write(text)
         # Logging date and time
-        fp.write(f"{NAME}")
+        fp.write(NAME)
 
         # If no shares to apply
         if not len(results):
@@ -86,7 +86,8 @@ def update_file(results, NAME):
         for  result in results:
             fp.write("\n")
             fp.write("\n")
-            fp.write(result[0]+"\n"+result[1]+"\n"+result[2])
+            fp.write(result[0]+"\n\n"+result[1]+ "\n"+result[2]+"\n")
+            fp.write("-"*30)
         fp.write("\n")
         fp.write("-"*90)
         fp.write('\n\n')
@@ -366,7 +367,10 @@ def main():
         print()
         print(f"Completed :: {minutes:.0f} minutes | {seconds:.1f} seconds" )
         print()
-        os.startfile(f"{DIR_PATH}\Results\IPO_Results.txt")
+        try:
+            os.startfile(f"{DIR_PATH}\Results\IPO_Results.txt")
+        except:
+            pass
 
     return
 
