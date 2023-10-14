@@ -5,7 +5,7 @@ import stdiomask
 user_data = []
 USER_NAME = []
 options = ['1','2','3','4','5']
-sub_options = ['1','2','3']
+sub_options = ['1','2','3','4']
 
 key = ''
 
@@ -78,6 +78,7 @@ def sub_menu(user_exists = 0):
             print("1. Update password")
             print("2. Update PIN")
             print("3. Cancel")
+            print("4. Update CRN")
             print()
             option = input("Choose one option: ")
             if option in sub_options:
@@ -113,9 +114,9 @@ def check_user(user_name):
             return True
     return False
 
-def update_pin_or_passwd(user_name, pin=0, passwd =0):
+def update_pin_or_passwd(user_name, pin=0, passwd =0, crn=0):
 
-    if pin == passwd == 1:
+    if pin == passwd == crn == 1:
         return False
         
     if pin == 1:
@@ -146,6 +147,20 @@ def update_pin_or_passwd(user_name, pin=0, passwd =0):
                 continue
             user[3] = new_passwd
             return True
+    if crn == 1:
+        while True:
+            try:
+                new_crn = input("Enter crn:")
+                fer = Fernet(key)
+                new_crn = fer.encrypt(new_crn.encode()).decode()
+                break
+            except:
+                return False
+        for user in user_data:
+            if user_name != user[0].upper():
+                continue
+            user[4] = new_crn
+            return True
             
 
 
@@ -174,12 +189,21 @@ def update_user():
             return False
         return True
 
-    val = update_pin_or_passwd(user_name, pin=0, passwd =1)
-    if not val:
-        print("Could not update password!")
-        input()
-        return False
-    return True
+    if option == '1':
+        val = update_pin_or_passwd(user_name, pin=0, passwd =1)
+        if not val:
+            print("Could not update password!")
+            input()
+            return False
+        return True
+
+    if option == '4':
+        val = update_pin_or_passwd(user_name, pin=0, passwd =0, crn=1)
+        if not val:
+            print("Could not update crn!")
+            input()
+            return False
+        return True
     
         
     

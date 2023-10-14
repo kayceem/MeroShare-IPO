@@ -18,12 +18,13 @@ def main(start_file=True):
     ser = Service(PATH)
     option = Options()
     option.use_chromium = True
-    option.add_argument('headless')
+    # option.add_argument('headless')
     option.add_experimental_option('excludeSwitches', ['enable-logging'])
     option.add_argument('--disable-extensions')
     browser = webdriver.Edge(service= ser,options = option)
     try:
         browser.get('https://nepsealpha.com/investment-calandar/ipo')
+        # https://www.nepalipaisa.com/ipo
         print('NEPSEALPHA :: Request successful!')
     except:
         print('NEPSEALPHA :: Request failed!')
@@ -31,6 +32,7 @@ def main(start_file=True):
     while True:
         try:
             browser.implicitly_wait(5)
+            # WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.ID, "selectBank")))
             option = Select(browser.find_element(By.XPATH, '/html/body/div[1]/div[3]/div[2]/div/div[2]/div/div/div/div/div[1]/label/select'))
             option.select_by_value('25')
             print('NEPSEALPHA :: 25 items expanded!')
@@ -67,6 +69,10 @@ def main(start_file=True):
     if start_file:
         os.startfile(file_path)
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("Interrupted!")
+        exit(1)
             
     

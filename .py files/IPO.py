@@ -128,7 +128,7 @@ def apply_share(browser, CRN, PIN, DP, ipo):
     sleep(0.5)
     
     quantity = browser.find_element(By.ID, "appliedKitta")
-    if ipo == 'IPO':
+    if ipo == 'IPO' or ipo == 'FPO':
         ########### Clearing the quantity if any ############
         browser.find_element(By.ID, "appliedKitta").clear()
         ############## DO NOT CHANGE THIS ###################
@@ -143,7 +143,6 @@ def apply_share(browser, CRN, PIN, DP, ipo):
     crn = browser.find_element(By.ID, "crnNumber")
     crn.clear()
     crn.send_keys(f"{CRN}")
-
     # Checking privacy policy and clicking on proceed button
     browser.find_element(By.ID, "disclaimer").click()
     try:
@@ -202,7 +201,7 @@ def check_to_apply(browser, user, info, lock):
             
         
         # Checking if the share is IPO | can be applied | and is not debenture
-        if not ipo == 'IPO' and not ipo == 'RESERVED (RIGHT SHARE)':
+        if not (ipo == 'IPO' or ipo=='FPO') and not ipo == 'RESERVED (RIGHT SHARE)':
             continue
         if not (button == 'Apply' or button == 'Reapply'):
             continue
