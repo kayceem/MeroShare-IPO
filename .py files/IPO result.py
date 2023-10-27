@@ -218,6 +218,9 @@ def create_browser(user,lock):
     option.add_argument('-inprivate')
     option.add_argument('start-maximized')
     option.add_argument('--disable-inforbars')
+    option.add_argument('--no-sandbox')
+    option.add_argument("dom.disable_beforeunload=true")
+
     browser = webdriver.Edge(service= ser,options = option)
             
 
@@ -304,7 +307,7 @@ def create_browser(user,lock):
     with lock:
         logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Completed for user {NAME} ")
         print(f"{datetime.now().strftime('%I:%M:%S')} :: Completed for user {NAME} ")
-    
+    browser.quit()
     return True
 
 
