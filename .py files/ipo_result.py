@@ -27,23 +27,6 @@ key = ""
 logs = []
 USER = []
 sorted_logs = []
-DATA = []
-# select_DP = {
-#     '11500' : '171',
-#     '17300' : '162',
-#     '10400' : '164',
-#     '13700' : '174',
-#     '12600' : '179',
-#     '11000' : '175',
-# }
-bank_id = {
-    "11500": "1: 49",
-    "17300": "1: 42",
-    "10400": "1: 37",
-    "13700": "1: 44",
-    "12600": "1: 48",
-    "11000": "1: 45",
-}
 
 
 def display_logs(usr=[]):
@@ -74,8 +57,8 @@ def display_logs(usr=[]):
     return
 
 
-def update_file(applied_shares, NAME="Default"):
-    filename = f"{DIR_PATH}\Results\Results.txt"
+def update_file(results, NAME):
+    filename = f"{DIR_PATH}\Results\IPO_Results.txt"
     text = ""
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     try:
@@ -86,209 +69,71 @@ def update_file(applied_shares, NAME="Default"):
 
     # Create a file with with users name
     with open(filename, "w", encoding="utf-8") as fp:
-        fp.write(text)
+        if len(text):
+            fp.write(text)
         # Logging date and time
-        fp.write(str(datetime.now().strftime("%I:%M:%S")))
-        fp.write("\n")
-        fp.write(f"{NAME}")
+        fp.write(NAME)
 
         # If no shares to apply
-        if len(applied_shares) == 0:
-            fp.write(": No shares to apply")
+        if not len(results):
+            fp.write(": No Result")
             fp.write("\n")
             fp.write("-" * 30)
             fp.write("\n\n")
             return
 
         # Wrtitng the applied shares to the file
-        for shares in applied_shares:
-            name, _, _, ipo, share_type, button = shares
-            temp = (
-                name + " | " + ipo + " | " + share_type + " | " + button + " | " + "\n"
-            )
-            fp.write(f": {temp}")
-        fp.write("-" * 30)
+        for result in results:
+            fp.write("\n")
+            fp.write("\n")
+            fp.write(result[0] + "\n\n" + result[1] + "\n" + result[2] + "\n")
+            fp.write("-" * 30)
+        fp.write("\n")
+        fp.write("-" * 90)
         fp.write("\n\n")
-        return
-
-
-def apply_share(browser, CRN, PIN, DP, ipo):
-    try:
-        check = WebDriverWait(browser, 5).until(
-            EC.presence_of_element_located((By.ID, "selectBank"))
-        )
-    except:
-        return False
-    """
-    select_bank = browser.find_element(By.ID, "selectBank")
-    select_bank.click()
-    sleep(0.5)
-    select_bank.send_keys(Keys.DOWN)
-    select_bank.send_keys(Keys.DOWN)
-    select_bank.send_keys(Keys.RETURN)
-    """
-    option = Select(browser.find_element(By.ID, "selectBank"))
-    option.select_by_value(f"{bank_id[DP]}")
-    sleep(0.5)
-
-    quantity = browser.find_element(By.ID, "appliedKitta")
-    if ipo == "IPO" or ipo == "FPO":
-        ########### Clearing the quantity if any ############
-        browser.find_element(By.ID, "appliedKitta").clear()
-        ############## DO NOT CHANGE THIS ###################
-        QUANTITY = 10
-        if QUANTITY != 10:
-            QUANTITY = 10
-        quantity.send_keys(f"{QUANTITY}")
-        #####################################################
-    text = quantity.get_attribute("value")
-
-    # Entering CRN
-    crn = browser.find_element(By.ID, "crnNumber")
-    crn.clear()
-    crn.send_keys(f"{CRN}")
-    # Checking privacy policy and clicking on proceed button
-    browser.find_element(By.ID, "disclaimer").click()
-    try:
-        browser.find_element(
-            By.XPATH,
-            "/html/body/app-dashboard/div/main/div/app-issue/div/wizard/div/wizard-step[1]/form/div[2]/div/div[5]/div[2]/div/button[1]",
-        ).click()
-    except:
-        browser.find_element(
-            By.XPATH,
-            "/html/body/app-dashboard/div/main/div/app-re-apply/div/div/wizard/div/wizard-step[1]/form/div[2]/div/div[4]/div[2]/div/button[1]",
-        ).click()
-    sleep(1)
-
-    fernet = Fernet(key)
-    pin_number = (fernet.decrypt(PIN.encode())).decode()
-    # Entering pin
-    pin = WebDriverWait(browser, 2).until(
-        EC.presence_of_element_located((By.ID, "transactionPIN"))
-    )
-    pin.send_keys(f"{pin_number}")
-
-    # Clicking on apply button
-    try:
-        browser.find_element(
-            By.XPATH,
-            "/html/body/app-dashboard/div/main/div/app-issue/div/wizard/div/wizard-step[2]/div[2]/div/form/div[2]/div/div/div/button[1]",
-        ).click()
-    except:
-        browser.find_element(
-            By.XPATH,
-            "/html/body/app-dashboard/div/main/div/app-re-apply/div/div/wizard/div/wizard-step[2]/div[2]/div/form/div[2]/div/div/div/button[1]",
-        ).click()
-    sleep(3)
-    return int(text)
-
-
-def check_to_apply(browser, user, info, lock):
-    applied_shares = []
-    quantities = []
-    NAME, DP, _, _, CRN, PIN = user
-
-    for index, data in enumerate(info):
-        # Checking if there is a button
-        try:
-            name, _, _, ipo, share_type, button = data
-        # If not continue to another share
-        except:
-            name = data[0]
-            button = "No button"
-            with lock:
-                logs.append(
-                    f"{datetime.now().strftime('%I:%M:%S')} :: Already applied for {NAME} : {name} | {button} "
-                )
-                print(
-                    f"{datetime.now().strftime('%I:%M:%S')} :: Already applied for {NAME} : {name} | {button} "
-                )
-
-            continue
-
-        if share_type != "Ordinary Shares":
-            with lock:
-                logs.append(
-                    f"{datetime.now().strftime('%I:%M:%S')} :: Not applied for {NAME} : {share_type} | {name}"
-                )
-                print(
-                    f"{datetime.now().strftime('%I:%M:%S')} :: Not applied for {NAME} : {share_type} | {name}"
-                )
-
-            continue
-
-        if button == "Edit":
-            with lock:
-                logs.append(
-                    f"{datetime.now().strftime('%I:%M:%S')} :: Already applied for {NAME} : {name} : {button}"
-                )
-                print(
-                    f"{datetime.now().strftime('%I:%M:%S')} :: Already applied for {NAME} : {name} : {button}"
-                )
-
-            continue
-
-        # Checking if the share is IPO | can be applied | and is not debenture
-        if not (ipo == "IPO" or ipo == "FPO") and not ipo == "RESERVED (RIGHT SHARE)":
-            continue
-        if not (button == "Apply" or button == "Reapply"):
-            continue
-
-        try:
-            browser.find_element(
-                By.XPATH,
-                f"/html/body/app-dashboard/div/main/div/app-asba/div/div[2]/app-applicable-issue/div/div/div/div/div[{index+1}]/div/div[2]/div/div[4]/button",
-            ).click()
-        except:
-            browser.find_element(
-                By.XPATH,
-                f"/html/body/app-dashboard/div/main/div/app-asba/div/div[2]/app-applicable-issue/div/div/div/div/div[{index+1}]/div/div[2]/div/div[3]/button",
-            ).click()
-
-        track = 1
-        #  Applying the share
-        while True:
-            if track == 4:
-                break
-            try:
-                share_applied = apply_share(browser, CRN, PIN, DP, ipo)
-                if not share_applied:
-                    raise Exception
-
-                with lock:
-                    logs.append(
-                        f"{datetime.now().strftime('%I:%M:%S')} :: Applied shares for {NAME} : {name} : {share_applied} shares"
-                    )
-                    print(
-                        f"{datetime.now().strftime('%I:%M:%S')} :: Applied shares for {NAME} : {name} : {share_applied} shares"
-                    )
-
-                quantities.append(share_applied)
-                # Storing applied shares in a list
-                applied_shares.append(data)
-                break
-            except:
-                browser.get(browser.current_url)
-                with lock:
-                    logs.append(
-                        f"{datetime.now().strftime('%I:%M:%S')} :: Could not apply {NAME} : {name} ({track})"
-                    )
-                    print(
-                        f"{datetime.now().strftime('%I:%M:%S')} :: Could not apply {NAME} : {name} ({track})"
-                    )
-
-                track += 1
-    # Writing the results to a file
-    with lock:
-        update_file(applied_shares, NAME)
     return
 
 
-def check_for_companies(browser, lock, NAME):
-    info = []
-    track = 1
+def check_result(browser, info):
+    result = []
+    for index, data in enumerate(info):
+        name = data[1]
+        try:
+            WebDriverWait(browser, 10).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, f"(//button[@type='button'])[{index+6}]")
+                )
+            ).click()
+        except:
+            continue
+        sleep(1)
+        loop = 0
+        while True:
+            try:
+                status = WebDriverWait(browser, 5).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "(//div[@class='row'])[10]")
+                    )
+                )
+                break
+            except:
+                if loop > 3:
+                    break
+                browser.refresh()
+                loop += 1
+        remarks = browser.find_element(By.XPATH, f"(//div[@class='row'])[11]")
+        remarks = remarks.text.replace("\n", " :: ")
+        status = status.text.replace("\n", " :: ")
+        result.append([name, status, remarks])
+        browser.find_element(
+            By.XPATH,
+            "/html/body/app-dashboard/div/main/div/app-application-report/div/div[1]/div/div[1]/div/div/div/button",
+        ).click()
+    return result
 
+
+def get_companies(browser, lock, NAME):
+    info = []
     # Navigating to ABSA
     browser.get("https://meroshare.cdsc.com.np/#/asba")
     try:
@@ -307,7 +152,13 @@ def check_for_companies(browser, lock, NAME):
     except:
         pass
 
+    track = 1
     while True:
+        WebDriverWait(browser, 5).until(
+            EC.presence_of_element_located(
+                (By.XPATH, "//main[@id='main']//li[3]//a[1]")
+            )
+        ).click()
         if track == 4:
             with lock:
                 logs.append(
@@ -346,6 +197,8 @@ def check_for_companies(browser, lock, NAME):
     # Storing all the information of comapnies from the web elements as list in a list : info
     for shares in shares_available:
         info.append(shares.text.split("\n"))
+        if len(info) == 5:
+            break
     return info
 
 
@@ -401,11 +254,13 @@ def create_browser(user, lock):
     option.add_experimental_option("excludeSwitches", ["enable-logging"])
     option.add_argument("--disable-extensions")
     option.add_argument("--disable-gpu")
+    option.add_argument("-inprivate")
     option.add_argument("start-maximized")
     option.add_argument("--disable-inforbars")
     option.add_argument("--no-sandbox")
     option.add_argument("dom.disable_beforeunload=true")
     option.add_argument("--log-level=3")
+
     browser = webdriver.Edge(service=ser, options=option)
 
     with lock:
@@ -488,8 +343,8 @@ def create_browser(user, lock):
         if login_failed:
             companies_available = False
             break
-        #  Checks if comapnies are available
-        companies_available = check_for_companies(browser, lock, NAME)
+        #  Checks if comapnies data are available
+        companies_available = get_companies(browser, lock, NAME)
         if companies_available == "not_authorized":
             browser.get("https://meroshare.cdsc.com.np/#/login")
             continue
@@ -504,8 +359,15 @@ def create_browser(user, lock):
 
         return False
 
-    #  Tries to apply available companies
-    check_to_apply(browser, user, companies_available, lock)
+    #  Check result available companies
+    with lock:
+        logs.append(
+            f"{datetime.now().strftime('%I:%M:%S')} :: Checking results for {NAME}"
+        )
+        print(f"{datetime.now().strftime('%I:%M:%S')} :: Checking results for {NAME}")
+    results = check_result(browser, companies_available)
+    with lock:
+        update_file(results, NAME)
 
     # Quiting the browser
     with lock:
@@ -517,7 +379,7 @@ def create_browser(user, lock):
     return True
 
 
-def main(default=False):
+def main():
     user_data = []
     temp = []
     thread_list = []
@@ -527,26 +389,11 @@ def main(default=False):
     os.system("cls")
     #  Remove old files
     try:
-        os.remove(f"{path}\Results.txt")
+        os.remove(f"{path}\IPO_Results.txt")
         os.remove(f"{path}\logs.txt")
     except:
         pass
-    SINGLE_USER = ""
     WAIT_TIME = 3
-    if not default:
-        #  Asks user for wait time
-        try:
-            WAIT_TIME = int(input("Enter wait time between each user: "))
-            if WAIT_TIME < 3:
-                WAIT_TIME = 3
-            if WAIT_TIME > 10:
-                WAIT_TIME = 10
-        except:
-            WAIT_TIME = 10
-
-        # Asks is user wants to use only for single user
-        SINGLE_USER = (input("Enter the user you want to apply: ")).upper()
-        print()
 
     # Checks for key in key.key
     try:
@@ -570,17 +417,6 @@ def main(default=False):
     except:
         logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Data Base not found! ")
         return
-    # Checks for single user
-    for index, user in enumerate(user_data):
-        if not user[0].upper() == SINGLE_USER:
-            continue
-        temp.append(user_data.pop(index))
-        check = True
-        break
-
-    if check:
-        user_data = temp
-    DATA.append(user_data)
 
     start_time = perf_counter()
     executor = ThreadPoolExecutor()
@@ -599,11 +435,10 @@ def main(default=False):
         print()
         print(f"Completed :: {minutes:.0f} minutes | {seconds:.1f} seconds")
         print()
-        if not default:
-            input("Press Enter to Exit")
-            os.startfile(f"{DIR_PATH}\Results\logs.txt")
-        if default:
-            os.startfile(f"{DIR_PATH}\Results\Results.txt")
+        try:
+            os.startfile(f"{DIR_PATH}\Results\IPO_Results.txt")
+        except:
+            pass
 
     return
 
@@ -612,7 +447,6 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        display_logs(DATA[0])
         input("Interrupted!!!")
         try:
             exit(0)

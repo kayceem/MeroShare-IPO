@@ -1,43 +1,46 @@
-from os import system
+from os import system, path, mkdir
 from cryptography.fernet import Fernet
-import stdiomask
+import stdiomask, base64
 
 user_data = []
 USER_NAME = []
-options = ['1','2','3','4','5']
-sub_options = ['1','2','3','4']
+options = ["1", "2", "3", "4", "5"]
+sub_options = ["1", "2", "3", "4"]
 
-key = ''
+key = ""
+
 
 def clear_screen():
     system("cls")
 
+
 def check_for_key():
     try:
-        with open(".\Source Files\key.key", 'r') as fp:
+        with open(".\Source Files\key.key", "r", encoding="utf-8") as fp:
             lines = fp.read().splitlines()
             key = lines[0]
-            if len(key) < 20:
-                    raise Exception("No key Found!")
+            if len(base64.urlsafe_b64decode(key)) != 32:
+                raise Exception("Invalid key!")
             for line in lines[1:]:
                 if len(line) != 0:
                     raise Exception("No key Found!")
         return key
     except:
         try:
-            with open(".\Source Files\key.key", 'w') as fp:
+            with open(".\Source Files\key.key", "w", encoding="utf-8") as fp:
                 key = Fernet.generate_key().decode()
                 fp.write(key)
-                return key 
+                return key
         except:
             return False
 
+
 def load_data_base():
     try:
-        with open (".\Source Files\dataBase.txt",'r') as fp:
+        with open(".\Source Files\dataBase.txt", "r", encoding="utf-8") as fp:
             lines = fp.read().splitlines()
             for line in lines:
-                data = line.split(',')
+                data = line.split(",")
                 if len(data) != 6:
                     continue
                 user_data.append(data)
@@ -46,20 +49,22 @@ def load_data_base():
     except:
         return False
 
-def display_user_data(usr = 0):
+
+def display_user_data(usr=0):
     clear_screen()
     if usr == 0:
         usr = user_data
-        print("-"*50)
-    for NAME, DP, USERNAME, _, _, _ in  usr:
+        print("-" * 50)
+    for NAME, DP, USERNAME, _, _, _ in usr:
         print(f"-> {NAME} | {DP} | {USERNAME} ")
         print()
-    print("-"*50)
-         
+    print("-" * 50)
+
+
 def menu():
     while True:
         clear_screen()
-        print("-"*50)
+        print("-" * 50)
         print()
         print("1. Add new user")
         print("2. Update user")
@@ -71,7 +76,8 @@ def menu():
         if option in options:
             return option
 
-def sub_menu(user_exists = 0):
+
+def sub_menu(user_exists=0):
     if user_exists:
         while True:
             print()
@@ -101,24 +107,23 @@ def sub_menu(user_exists = 0):
     fer = Fernet(key)
     passwd = fer.encrypt(passwd.encode()).decode()
     pin = fer.encrypt(str(pin).encode()).decode()
-    user_data.append([name,dp,id,passwd,crn,pin])
+    user_data.append([name, dp, id, passwd, crn, pin])
     return True
     # except:
     #     return False
 
 
 def check_user(user_name):
-
     for name in USER_NAME:
         if name.upper() == user_name:
             return True
     return False
 
-def update_pin_or_passwd(user_name, pin=0, passwd =0, crn=0):
 
+def update_pin_or_passwd(user_name, pin=0, passwd=0, crn=0):
     if pin == passwd == crn == 1:
         return False
-        
+
     if pin == 1:
         while True:
             try:
@@ -161,9 +166,6 @@ def update_pin_or_passwd(user_name, pin=0, passwd =0, crn=0):
                 continue
             user[4] = new_crn
             return True
-            
-
-
 
 
 def update_user():
@@ -173,40 +175,39 @@ def update_user():
     if not user_exits:
         return False
 
-    print("-"*50)
+    print("-" * 50)
     print(f"\t\t\t{user_name}")
-    print("-"*50)
+    print("-" * 50)
 
     option = sub_menu(1)
-    if option == '3':
+    if option == "3":
         return False
 
-    if option == '2':
-        val = update_pin_or_passwd(user_name, pin=1, passwd =0)
+    if option == "2":
+        val = update_pin_or_passwd(user_name, pin=1, passwd=0)
         if not val:
             print("Could not update pin!")
             input()
             return False
         return True
 
-    if option == '1':
-        val = update_pin_or_passwd(user_name, pin=0, passwd =1)
+    if option == "1":
+        val = update_pin_or_passwd(user_name, pin=0, passwd=1)
         if not val:
             print("Could not update password!")
             input()
             return False
         return True
 
-    if option == '4':
-        val = update_pin_or_passwd(user_name, pin=0, passwd =0, crn=1)
+    if option == "4":
+        val = update_pin_or_passwd(user_name, pin=0, passwd=0, crn=1)
         if not val:
             print("Could not update crn!")
             input()
             return False
         return True
-    
-        
-    
+
+
 def add_user():
     added = sub_menu()
 
@@ -216,84 +217,84 @@ def add_user():
         return False
     return True
 
+
 def delete_user():
-    name = input('Enter name of user: ').upper()
+    name = input("Enter name of user: ").upper()
     for data in user_data:
         if name in data[0].upper():
             user_data.remove(data)
             return True
     return False
-    
+
 
 def update_data_base():
-    with open (".\Source Files\dataBase.txt",'w') as fp:
-        for NAME, DP, USERNAME, PASSWD, CRN, PIN in  user_data:
+    with open(".\Source Files\dataBase.txt", "w", encoding="utf-8") as fp:
+        for NAME, DP, USERNAME, PASSWD, CRN, PIN in user_data:
             fp.write(f"{NAME},{DP},{USERNAME},{PASSWD},{CRN},{PIN}\n")
 
-    
 
-    
-    
 def main():
+    global key
+    if not path.isdir("Source Files"):
+        mkdir("Source Files")
+    key = check_for_key()
+    if not key:
+        print("Key not found!")
+        exit(1)
+
     loaded = load_data_base()
 
     if not loaded:
         print("No data Base available!")
         print()
-        print('Press Enter to Continue')
+        print("Press Enter to Continue")
         input()
-    
+
     if loaded:
         display_user_data()
         input()
 
     while True:
         option = menu()
-    
-        if option == '5':
+
+        if option == "5":
             clear_screen()
             print("Terminated!")
             return
-        
-        if option == '4':
+
+        if option == "4":
             display_user_data()
             input()
             continue
 
-
-        if option == '3':
+        if option == "3":
             if not delete_user():
-                print('No user found!')
+                print("No user found!")
             else:
-                print('Deleted!')
+                print("Deleted!")
             input()
             continue
 
-        if option == '2':
+        if option == "2":
             clear_screen()
-            updated  = update_user()
+            updated = update_user()
             if updated:
                 print("User updated!")
                 input()
                 update_data_base()
             continue
-        
+
         added = add_user()
         if added:
-                print("User added!")
-                input()
-                update_data_base()
+            print("User added!")
+            input()
+            update_data_base()
+
 
 if __name__ == "__main__":
     try:
-        key = check_for_key()
-        if not key:
-            print('Key not found!')
-            exit(0)
         main()
     except KeyboardInterrupt:
         print()
-        print('Interrupted!')
+        print("Interrupted!")
         exit(1)
-
-    
