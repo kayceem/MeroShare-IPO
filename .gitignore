@@ -5,3 +5,5 @@ Errors/
 key.key
 .venv/
 .git
+*.exe
+*.lnk
