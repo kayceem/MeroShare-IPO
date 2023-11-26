@@ -156,7 +156,6 @@ def update_pin_or_passwd(user_name, pin=0, passwd=0, crn=0):
         while True:
             try:
                 new_crn = input("Enter crn:")
-                fer = Fernet(key)
                 new_crn = fer.encrypt(new_crn.encode()).decode()
                 break
             except:
