@@ -5,24 +5,25 @@ from threading import RLock
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from cryptography.fernet import Fernet
-from os.path import dirname as up
 
 from selenium import webdriver
-from selenium.webdriver.edge.options import Options
-from selenium.webdriver.edge.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 
-# from pathlib import Path
+from pathlib import Path
+
+from chrome_helper import setup_chrome_and_driver
 # DRIVER_PATH = Path(DIR_PATH).parents[1]
 
 
-DIR_PATH = os.getcwd()
-DRIVER_PATH = up(up(DIR_PATH))
-PATH = f"{DRIVER_PATH}\Driver\msedgedriver.exe"
+DIR_PATH = Path(__file__).parent 
+BINARY_PATH = DIR_PATH / "chrome/chrome"
+DRIVER_PATH = DIR_PATH / "chrome/chromedriver"
 key = ""
 logs = []
 USER = []
@@ -36,13 +37,13 @@ DATA = []
 #     '12600' : '179',
 #     '11000' : '175',
 # }
-bank_id = {"11500": "1: 49", "17300": "1: 42", "10400": "1: 37", "13700": "1: 44", "12600": "1: 48", "11000": "1: 45"}
+bank_id = {"11500": "49", "17300": "42", "10400": "37", "13700": "44", "12600": "48", "11000": "45"}
 
 
 def display_logs(usr=[]):
-    os.system("cls")
+    os.system("clear")
     temp = "--------------------------------------\n"
-    filename = f"{DIR_PATH}\Results\logs.txt"
+    filename = f"{DIR_PATH}/Results/logs.txt"
     os.makedirs(os.path.dirname(filename), exist_ok=True)
 
     if len(usr) == 1:
@@ -66,9 +67,16 @@ def display_logs(usr=[]):
             fp.write("\n")
     return
 
+def save_screenshot(browser, NAME, name, share_applied):
+    filename = f"{DIR_PATH}/Results/{name}/{NAME}_{share_applied}.png"
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    browser.get("https://meroshare.cdsc.com.np/#/asba")
+    sleep(2)
+    browser.save_screenshot(filename)
+    return
 
 def update_file(applied_shares, NAME="Default"):
-    filename = f"{DIR_PATH}\Results\Results.txt"
+    filename = f"{DIR_PATH}/Results/Results.txt"
     text = ""
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     try:
@@ -103,7 +111,7 @@ def update_file(applied_shares, NAME="Default"):
         return
 
 
-def apply_share(browser, CRN, PIN, DP, ipo):
+def apply_share(browser, CRN, PIN, DP, ipo, ACCOUNT_NUMBER):
     try:
         check = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.ID, "selectBank")))
     except:
@@ -119,7 +127,10 @@ def apply_share(browser, CRN, PIN, DP, ipo):
     option = Select(browser.find_element(By.ID, "selectBank"))
     option.select_by_value(f"{bank_id[DP]}")
     sleep(0.5)
-
+    option = Select(browser.find_element(By.ID, "accountNumber"))
+    option.select_by_value(f"{ACCOUNT_NUMBER}")
+    sleep(0.5)
+    
     quantity = browser.find_element(By.ID, "appliedKitta")
     if ipo == "IPO" or ipo == "FPO":
         ########### Clearing the quantity if any ############
@@ -149,12 +160,14 @@ def apply_share(browser, CRN, PIN, DP, ipo):
     # Entering pin
     pin = WebDriverWait(browser, 2).until(EC.presence_of_element_located((By.ID, "transactionPIN")))
     pin.send_keys(f"{pin_number}")
+    # breakpoint()
 
     # Clicking on apply button
     try:
         browser.find_element(By.XPATH, "/html/body/app-dashboard/div/main/div/app-issue/div/wizard/div/wizard-step[2]/div[2]/div/form/div[2]/div/div/div/button[1]").click()
     except:
         browser.find_element(By.XPATH, "/html/body/app-dashboard/div/main/div/app-re-apply/div/div/wizard/div/wizard-step[2]/div[2]/div/form/div[2]/div/div/div/button[1]").click()
+
     sleep(3)
     return int(text)
 
@@ -162,7 +175,7 @@ def apply_share(browser, CRN, PIN, DP, ipo):
 def check_to_apply(browser, user, info, lock):
     applied_shares = []
     quantities = []
-    NAME, DP, _, _, CRN, PIN = user
+    NAME, DP, _, _, CRN, PIN,ACCOUNT_NUMBER = user
 
     for index, data in enumerate(info):
         # Checking if there is a button
@@ -177,8 +190,7 @@ def check_to_apply(browser, user, info, lock):
                 print(f"{datetime.now().strftime('%I:%M:%S')} :: Already applied for {NAME} : {name} | {button} ")
 
             continue
-
-        if share_type != "Ordinary Shares" or "Local" not in share_type:
+        if not share_type == "Ordinary Shares" and "Local" not in share_type:
             with lock:
                 logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Not applied for {NAME} : {share_type} | {name}")
                 print(f"{datetime.now().strftime('%I:%M:%S')} :: Not applied for {NAME} : {share_type} | {name}")
@@ -202,17 +214,17 @@ def check_to_apply(browser, user, info, lock):
             browser.find_element(By.XPATH, f"/html/body/app-dashboard/div/main/div/app-asba/div/div[2]/app-applicable-issue/div/div/div/div/div[{index+1}]/div/div[2]/div/div[4]/button").click()
         except:
             browser.find_element(By.XPATH, f"/html/body/app-dashboard/div/main/div/app-asba/div/div[2]/app-applicable-issue/div/div/div/div/div[{index+1}]/div/div[2]/div/div[3]/button").click()
-
         track = 1
         #  Applying the share
         while True:
             if track == 4:
                 break
             try:
-                share_applied = apply_share(browser, CRN, PIN, DP, ipo)
+                share_applied = apply_share(browser, CRN, PIN, DP, ipo, ACCOUNT_NUMBER)
                 if not share_applied:
                     raise Exception
 
+                save_screenshot(browser, NAME, name, share_applied)
                 with lock:
                     logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Applied shares for {NAME} : {name} : {share_applied} shares")
                     print(f"{datetime.now().strftime('%I:%M:%S')} :: Applied shares for {NAME} : {name} : {share_applied} shares")
@@ -226,7 +238,6 @@ def check_to_apply(browser, user, info, lock):
                 with lock:
                     logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Could not apply {NAME} : {name} ({track})")
                     print(f"{datetime.now().strftime('%I:%M:%S')} :: Could not apply {NAME} : {name} ({track})")
-
                 track += 1
     # Writing the results to a file
     with lock:
@@ -313,24 +324,29 @@ def login(browser, DP, USERNAME, PASSWD):
 
 
 def create_browser(user, lock):
-    NAME, DP, USERNAME, PASSWD, _, PIN = user
+    NAME, DP, USERNAME, PASSWD, _, _, _ = user
     # fernet = Fernet(key)
     # pin_number = (fernet.decrypt(PIN.encode())).decode()
     # breakpoint()
     # Opening edge driver
-    ser = Service(PATH)
-    option = Options()
-    option.use_chromium = True
-    # option.add_argument("headless")
-    option.add_experimental_option("excludeSwitches", ["enable-logging"])
-    option.add_argument("--disable-extensions")
-    option.add_argument("--disable-gpu")
-    option.add_argument("start-maximized")
-    option.add_argument("--disable-inforbars")
-    option.add_argument("--no-sandbox")
-    option.add_argument("dom.disable_beforeunload=true")
-    option.add_argument("--log-level=3")
-    browser = webdriver.Edge(service=ser, options=option)
+    try:
+        ser = Service(str(DRIVER_PATH))
+        option = Options()
+        option.binary_location = str(BINARY_PATH)
+        option.use_chromium = True
+        option.add_argument("headless")
+        option.add_experimental_option("excludeSwitches", ["enable-logging"])
+        option.add_argument("--disable-extensions")
+        option.add_argument("--disable-gpu")
+        option.add_argument("start-maximized")
+        option.add_argument("--disable-inforbars")
+        option.add_argument("--no-sandbox")
+        option.add_argument("dom.disable_beforeunload=true")
+        option.add_argument("--log-level=3")
+        browser = webdriver.Chrome(service=ser, options=option)
+    except Exception as e:
+        print(e)
+        return False
 
     with lock:
         logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Starting for user {NAME} ")
@@ -376,7 +392,7 @@ def create_browser(user, lock):
                 login_failed = False
                 break
             except:
-                browser.get_screenshot_as_file(f"Errors\{NAME.lower()}_{login_failed}.png")
+                browser.get_screenshot_as_file(f"Errors/{NAME.lower()}_{login_failed}.png")
                 browser.get("https://meroshare.cdsc.com.np/#/login")
                 login_failed += 1
                 with lock:
@@ -412,17 +428,22 @@ def create_browser(user, lock):
 
 
 def main(default=False):
+    if not BINARY_PATH.exists() or not DRIVER_PATH.exists():
+        setup_chrome_and_driver()
+        sleep(5)
+        if not BINARY_PATH.exists() or not DRIVER_PATH.exists():
+            return
+
     user_data = []
     temp = []
     thread_list = []
     lock = RLock()
     check = False
-    path = f"{DIR_PATH}\Results"
-    os.system("cls")
-    #  Remove old files
+    path = DIR_PATH / "Results"
+    # os.system("clear")
     try:
-        os.remove(f"{path}\Results.txt")
-        os.remove(f"{path}\logs.txt")
+        os.remove(f"{path}/Results.txt")
+        os.remove(f"{path}/logs.txt")
     except:
         pass
     SINGLE_USER = ""
@@ -444,7 +465,7 @@ def main(default=False):
 
     # Checks for key in key.key
     try:
-        with open(f"{DIR_PATH}\Source Files\key.key", "r", encoding="utf-8") as fp:
+        with open(f"{DIR_PATH}/Source Files/key.key", "r", encoding="utf-8") as fp:
             global key
             key = fp.read()
             key = key.encode()
@@ -453,11 +474,11 @@ def main(default=False):
         return
     # Checks for database
     try:
-        with open(f"{DIR_PATH}\Source Files\dataBase.txt", "r", encoding="utf-8") as fp:
+        with open(f"{DIR_PATH}/Source Files/dataBase.txt", "r", encoding="utf-8") as fp:
             lines = fp.read().splitlines()
             for line in lines:
                 data = line.split(",")
-                if len(data) != 6:
+                if len(data) != 7:
                     continue
                 user_data.append(data)
                 USER.append(data[0])
@@ -495,11 +516,11 @@ def main(default=False):
         print()
         print(f"Completed :: {minutes:.0f} minutes | {seconds:.1f} seconds")
         print()
-        if not default:
-            input("Press Enter to Exit")
-            os.startfile(f"{DIR_PATH}\Results\logs.txt")
-        if default:
-            os.startfile(f"{DIR_PATH}\Results\Results.txt")
+        # if not default:
+        #     input("Press Enter to Exit")
+        #     os.startfile(f"{DIR_PATH}/Results/logs.txt")
+        # if default:
+        #     os.startfile(f"{DIR_PATH}/Results/Results.txt")
 
     return
 

@@ -1,8 +1,10 @@
 Source Files/
 Results/
 Backup/
+chrome/
 Errors/
 key.key
+__pycache__/
 .venv/
 .git
 *.exe

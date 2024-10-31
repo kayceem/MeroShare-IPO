@@ -11,12 +11,12 @@ key = ""
 
 
 def clear_screen():
-    system("cls")
+    system("clear")
 
 
 def check_for_key():
     try:
-        with open(".\Source Files\key.key", "r", encoding="utf-8") as fp:
+        with open("./Source Files/key.key", "r", encoding="utf-8") as fp:
             lines = fp.read().splitlines()
             key = lines[0]
             if len(base64.urlsafe_b64decode(key)) != 32:
@@ -27,7 +27,7 @@ def check_for_key():
         return key
     except:
         try:
-            with open(".\Source Files\key.key", "w", encoding="utf-8") as fp:
+            with open("./Source Files/key.key", "w", encoding="utf-8") as fp:
                 key = Fernet.generate_key().decode()
                 fp.write(key)
                 return key
@@ -37,11 +37,11 @@ def check_for_key():
 
 def load_data_base():
     try:
-        with open(".\Source Files\dataBase.txt", "r", encoding="utf-8") as fp:
+        with open("./Source Files/dataBase.txt", "r", encoding="utf-8") as fp:
             lines = fp.read().splitlines()
             for line in lines:
                 data = line.split(",")
-                if len(data) != 6:
+                if len(data) != 7:
                     continue
                 user_data.append(data)
                 USER_NAME.append(data[0])
@@ -55,7 +55,7 @@ def display_user_data(usr=0):
     if usr == 0:
         usr = user_data
         print("-" * 50)
-    for NAME, DP, USERNAME, _, _, _ in usr:
+    for NAME, DP, USERNAME, _, _, _ ,_ in usr:
         print(f"-> {NAME} | {DP} | {USERNAME} ")
         print()
     print("-" * 50)
@@ -93,21 +93,22 @@ def sub_menu(user_exists=0):
     name = input("Enter name: ")
     while True:
         try:
-            dp = int(input("Enter DP: "))
-            id = int(input("Enter ID: "))
-            pin = int(stdiomask.getpass("Enter pin: "))
+            dp = int(input("Enter DP: ").strip())
+            id = int(input("Enter ID: ").strip())
+            pin = int(stdiomask.getpass("Enter pin: ").strip())
+            account_number = input("Enter account number: ").strip()
             break
         except:
             print()
             print("Enter numbers!")
             print()
 
-    passwd = stdiomask.getpass("Enter passwd: ")
-    crn = input("Enter crn: ")
+    passwd = stdiomask.getpass("Enter passwd: ").strip()
+    crn = input("Enter crn: ").strip()
     fer = Fernet(key)
     passwd = fer.encrypt(passwd.encode()).decode()
     pin = fer.encrypt(str(pin).encode()).decode()
-    user_data.append([name, dp, id, passwd, crn, pin])
+    user_data.append([name, dp, id, passwd, crn, pin, account_number])
     return True
     # except:
     #     return False
@@ -127,7 +128,7 @@ def update_pin_or_passwd(user_name, pin=0, passwd=0, crn=0):
     if pin == 1:
         while True:
             try:
-                new_pin = int(input("Enter new pin:"))
+                new_pin = int(input("Enter new pin:").strip())
                 fer = Fernet(key)
                 new_pin = fer.encrypt(str(new_pin).encode()).decode()
                 break
@@ -141,7 +142,7 @@ def update_pin_or_passwd(user_name, pin=0, passwd=0, crn=0):
     if passwd == 1:
         while True:
             try:
-                new_passwd = input("Enter new password:")
+                new_passwd = input("Enter new password:").strip()
                 fer = Fernet(key)
                 new_passwd = fer.encrypt(new_passwd.encode()).decode()
                 break
@@ -155,8 +156,7 @@ def update_pin_or_passwd(user_name, pin=0, passwd=0, crn=0):
     if crn == 1:
         while True:
             try:
-                new_crn = input("Enter crn:")
-                new_crn = fer.encrypt(new_crn.encode()).decode()
+                new_crn = input("Enter crn:").strip()
                 break
             except:
                 return False
@@ -168,7 +168,7 @@ def update_pin_or_passwd(user_name, pin=0, passwd=0, crn=0):
 
 
 def update_user():
-    user_name = input("Enter user name: ").upper()
+    user_name = input("Enter user name: ").upper().strip()
     user_exits = check_user(user_name)
 
     if not user_exits:
@@ -227,9 +227,9 @@ def delete_user():
 
 
 def update_data_base():
-    with open(".\Source Files\dataBase.txt", "w", encoding="utf-8") as fp:
-        for NAME, DP, USERNAME, PASSWD, CRN, PIN in user_data:
-            fp.write(f"{NAME},{DP},{USERNAME},{PASSWD},{CRN},{PIN}\n")
+    with open("./Source Files/dataBase.txt", "w", encoding="utf-8") as fp:
+        for NAME, DP, USERNAME, PASSWD, CRN, PIN, ACCOUNT_NUMBER in user_data:
+            fp.write(f"{NAME},{DP},{USERNAME},{PASSWD},{CRN},{PIN},{ACCOUNT_NUMBER}\n")
 
 
 def main():
