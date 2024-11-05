@@ -1,3 +1,6 @@
+#!/home/kayc/Code/Python/MeroShare-IPO/.venv/bin/python
+
+import argparse
 from sys import exit
 import os
 from time import sleep, perf_counter
@@ -427,7 +430,7 @@ def create_browser(user, lock):
     return True
 
 
-def main(default=False):
+def main(default):
     if not BINARY_PATH.exists() or not DRIVER_PATH.exists():
         setup_chrome_and_driver()
         sleep(5)
@@ -527,7 +530,15 @@ def main(default=False):
 
 if __name__ == "__main__":
     try:
-        main()
+        parser = argparse.ArgumentParser()
+        parser.add_argument(
+        "--default",
+        type=bool,
+        default=False,
+        help="Whether to use default values or not",
+        )
+        args = parser.parse_args()
+        main(args.default)
     except KeyboardInterrupt:
         display_logs(DATA[0])
         input("Interrupted!!!")
