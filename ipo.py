@@ -1,6 +1,7 @@
 #!/home/kayc/Code/Python/MeroShare-IPO/.venv/bin/python
 
 import argparse
+import logging
 from sys import exit
 import os
 from time import sleep, perf_counter
@@ -21,16 +22,22 @@ from selenium.webdriver.common.keys import Keys
 from pathlib import Path
 
 from chrome_helper import setup_chrome_and_driver
-# DRIVER_PATH = Path(DIR_PATH).parents[1]
+logging.basicConfig(
+    level=logging.DEBUG,
+    datefmt='%Y-%m-%d %H:%M:%S',
+    format='%(asctime)s - %(module)s - %(levelname)s - %(message)s',
+    handlers=[logging.FileHandler('app.log', mode='w'),logging.StreamHandler()]
+)
+logging.getLogger('selenium').setLevel(logging.ERROR)
+logging.getLogger('urllib3').setLevel(logging.ERROR)
 
+log = logging.getLogger(__name__)
 
 DIR_PATH = Path(__file__).parent 
 BINARY_PATH = DIR_PATH / "chrome/chrome"
 DRIVER_PATH = DIR_PATH / "chrome/chromedriver"
 key = ""
-logs = []
 USER = []
-sorted_logs = []
 DATA = []
 # select_DP = {
 #     '11500' : '171',
@@ -42,33 +49,6 @@ DATA = []
 # }
 bank_id = {"11500": "49", "17300": "42", "10400": "37", "13700": "44", "12600": "48", "11000": "45"}
 
-
-def display_logs(usr=[]):
-    os.system("clear")
-    temp = "--------------------------------------\n"
-    filename = f"{DIR_PATH}/Results/logs.txt"
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
-
-    if len(usr) == 1:
-        USER.clear()
-        USER.append(usr[0][0])
-    # Sort logs
-    for user in USER:
-        for log in logs[:]:
-            if not user in log:
-                continue
-            sorted_logs.append(log)
-            logs.remove(log)
-        sorted_logs.append(temp)
-
-    # Write logs
-    with open(filename, "w", encoding="utf-8") as fp:
-        for log in sorted_logs:
-            print()
-            print(log)
-            fp.write(log)
-            fp.write("\n")
-    return
 
 def save_screenshot(browser, NAME, name, share_applied):
     filename = f"{DIR_PATH}/Results/{name}/{NAME}_{share_applied}.png"
@@ -189,21 +169,18 @@ def check_to_apply(browser, user, info, lock):
             name = data[0]
             button = "No button"
             with lock:
-                logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Already applied for {NAME} : {name} | {button} ")
-                print(f"{datetime.now().strftime('%I:%M:%S')} :: Already applied for {NAME} : {name} | {button} ")
+                log.info(f"Already applied for {NAME} : {name} | {button} ")
 
             continue
         if not share_type == "Ordinary Shares" and "Local" not in share_type:
             with lock:
-                logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Not applied for {NAME} : {share_type} | {name}")
-                print(f"{datetime.now().strftime('%I:%M:%S')} :: Not applied for {NAME} : {share_type} | {name}")
+                log.info(f"Not applied for {NAME} : {share_type} | {name}")
 
             continue
 
         if button == "Edit":
             with lock:
-                logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Already applied for {NAME} : {name} : {button}")
-                print(f"{datetime.now().strftime('%I:%M:%S')} :: Already applied for {NAME} : {name} : {button}")
+                log.info(f"Already applied for {NAME} : {name} : {button}")
 
             continue
 
@@ -229,8 +206,7 @@ def check_to_apply(browser, user, info, lock):
 
                 save_screenshot(browser, NAME, name, share_applied)
                 with lock:
-                    logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Applied shares for {NAME} : {name} : {share_applied} shares")
-                    print(f"{datetime.now().strftime('%I:%M:%S')} :: Applied shares for {NAME} : {name} : {share_applied} shares")
+                    log.info(f"Applied shares for {NAME} : {name} : {share_applied} shares")
 
                 quantities.append(share_applied)
                 # Storing applied shares in a list
@@ -239,8 +215,7 @@ def check_to_apply(browser, user, info, lock):
             except:
                 browser.get(browser.current_url)
                 with lock:
-                    logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Could not apply {NAME} : {name} ({track})")
-                    print(f"{datetime.now().strftime('%I:%M:%S')} :: Could not apply {NAME} : {name} ({track})")
+                    log.info(f"Could not apply {NAME} : {name} ({track})")
                 track += 1
     # Writing the results to a file
     with lock:
@@ -257,8 +232,7 @@ def check_for_companies(browser, lock, NAME):
     try:
         WebDriverWait(browser, 2).until(EC.presence_of_element_located((By.XPATH, "/html/body/div/div/div/button"))).click()
         with lock:
-            logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: User was unauthorized  {NAME} ")
-            print(f"{datetime.now().strftime('%I:%M:%S')} :: User was unauthorized  {NAME} ")
+            log.info(f"User was unauthorized  {NAME} ")
 
         return "not_authorized"
     except:
@@ -267,8 +241,8 @@ def check_for_companies(browser, lock, NAME):
     while True:
         if track == 4:
             with lock:
-                logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: No Comapnies available/loaded  {NAME} ")
-                print(f"{datetime.now().strftime('%I:%M:%S')} :: No Comapnies available/loaded  {NAME} ")
+                log.info(f"No Comapnies available/loaded  {NAME} ")
+                print(f"No Comapnies available/loaded  {NAME} ")
             return False
         # Getting all the companies from Apply Issue
         try:
@@ -276,13 +250,13 @@ def check_for_companies(browser, lock, NAME):
             # gets lists of web element
             shares_available = browser.find_elements(By.CLASS_NAME, "company-list")
             with lock:
-                logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Got Companies for {NAME} ")
-                print(f"{datetime.now().strftime('%I:%M:%S')} :: Got Companies for {NAME} ")
+                log.info(f"Got Companies for {NAME} ")
+                print(f"Got Companies for {NAME} ")
             break
         except:
             with lock:
-                logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Tried to get Companies for {NAME} ({track})")
-                print(f"{datetime.now().strftime('%I:%M:%S')} :: Tried to get Companies for {NAME} ({track})")
+                log.info(f"Tried to get Companies for {NAME} ({track})")
+                print(f"Tried to get Companies for {NAME} ({track})")
             browser.get("https://meroshare.cdsc.com.np/#/asba")
             sleep(2 + track)
             track += 1
@@ -352,28 +326,24 @@ def create_browser(user, lock):
         return False
 
     with lock:
-        logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Starting for user {NAME} ")
-        print(f"{datetime.now().strftime('%I:%M:%S')} :: Starting for user {NAME} ")
+        log.info(f"Starting for user {NAME} ")
 
     while True:
         try:
             browser.get("https://meroshare.cdsc.com.np/#/login")
             with lock:
-                logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Connection established for user {NAME} ")
-                print(f"{datetime.now().strftime('%I:%M:%S')} :: Connection established for user {NAME} ")
+                log.info(f"Connection established for user {NAME} ")
             sleep(0.5)
         except:
             with lock:
-                logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Connection failed for user {NAME} ")
-                print(f"{datetime.now().strftime('%I:%M:%S')} :: Connection failed for user {NAME} ")
+                log.info(f"Connection failed for user {NAME} ")
             continue
         try:
             check = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.ID, "username")))
             break
         except:
             with lock:
-                logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Site didnot load {NAME} !!!  ")
-                print(f"{datetime.now().strftime('%I:%M:%S')} :: Site didnot load {NAME} !!!")
+                log.info(f"Site didnot load {NAME} !!!  ")
 
     login_failed = 1
     while True:
@@ -389,8 +359,7 @@ def create_browser(user, lock):
                     raise Exception
 
                 with lock:
-                    logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Logged in for {NAME} ")
-                    print(f"{datetime.now().strftime('%I:%M:%S')} :: Logged in for {NAME} ")
+                    log.info(f"Logged in for {NAME} ")
 
                 login_failed = False
                 break
@@ -399,8 +368,7 @@ def create_browser(user, lock):
                 browser.get("https://meroshare.cdsc.com.np/#/login")
                 login_failed += 1
                 with lock:
-                    logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Problem Logging in {NAME}")
-                    print(f"{datetime.now().strftime('%I:%M:%S')} :: Problem Logging in {NAME}")
+                    log.info(f"Problem Logging in {NAME}")
 
         if login_failed:
             companies_available = False
@@ -414,8 +382,7 @@ def create_browser(user, lock):
 
     if not companies_available:
         with lock:
-            logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Exited for user {NAME}")
-            print(f"{datetime.now().strftime('%I:%M:%S')} :: Exited for user {NAME}")
+            log.info(f"Exited for user {NAME}")
 
         return False
 
@@ -424,8 +391,7 @@ def create_browser(user, lock):
 
     # Quiting the browser
     with lock:
-        logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Completed for user {NAME} ")
-        print(f"{datetime.now().strftime('%I:%M:%S')} :: Completed for user {NAME} ")
+        log.info(f"Completed for user {NAME} ")
     browser.quit()
     return True
 
@@ -473,7 +439,7 @@ def main(default):
             key = fp.read()
             key = key.encode()
     except:
-        logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: No key Found! ")
+        log.info(f"No key Found! ")
         return
     # Checks for database
     try:
@@ -486,7 +452,7 @@ def main(default):
                 user_data.append(data)
                 USER.append(data[0])
     except:
-        logs.append(f"{datetime.now().strftime('%I:%M:%S')} :: Data Base not found! ")
+        log.info(f"Data Base not found! ")
         return
     # Checks for single user
     for index, user in enumerate(user_data):
@@ -515,16 +481,7 @@ def main(default):
     time_delta = end_time - start_time
     minutes, seconds = divmod(time_delta, 60)
     with lock:
-        display_logs(user_data)
-        print()
-        print(f"Completed :: {minutes:.0f} minutes | {seconds:.1f} seconds")
-        print()
-        # if not default:
-        #     input("Press Enter to Exit")
-        #     os.startfile(f"{DIR_PATH}/Results/logs.txt")
-        # if default:
-        #     os.startfile(f"{DIR_PATH}/Results/Results.txt")
-
+        log.info(f"Completed :: {minutes:.0f} minutes | {seconds:.1f} seconds")
     return
 
 
@@ -540,7 +497,6 @@ if __name__ == "__main__":
         args = parser.parse_args()
         main(args.default)
     except KeyboardInterrupt:
-        display_logs(DATA[0])
         input("Interrupted!!!")
         try:
             exit(0)
