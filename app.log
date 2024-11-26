@@ -1,57 +1,41 @@
-2024-11-12 21:07:21 - ipo - INFO - Starting for user kayc 
-2024-11-12 21:07:22 - ipo - INFO - Connection established for user kayc 
-2024-11-12 21:07:24 - ipo - INFO - Starting for user smita 
-2024-11-12 21:07:25 - ipo - INFO - Connection established for user smita 
-2024-11-12 21:07:27 - ipo - INFO - Logged in for kayc 
-2024-11-12 21:07:27 - ipo - INFO - Starting for user hajurbuwa 
-2024-11-12 21:07:30 - ipo - INFO - Connection established for user hajurbuwa 
-2024-11-12 21:07:30 - ipo - INFO - Logged in for smita 
-2024-11-12 21:07:30 - ipo - INFO - Starting for user prajwal 
-2024-11-12 21:07:33 - ipo - INFO - Connection established for user prajwal 
-2024-11-12 21:07:33 - ipo - INFO - Starting for user baba 
-2024-11-12 21:07:34 - ipo - INFO - Connection established for user baba 
-2024-11-12 21:07:34 - ipo - INFO - Tried to get Companies for kayc (1)
-2024-11-12 21:07:35 - ipo - INFO - Logged in for hajurbuwa 
-2024-11-12 21:07:36 - ipo - INFO - Starting for user m 
-2024-11-12 21:07:37 - ipo - INFO - Connection established for user m 
-2024-11-12 21:07:37 - ipo - INFO - Tried to get Companies for smita (1)
-2024-11-12 21:07:38 - ipo - INFO - Logged in for prajwal 
-2024-11-12 21:07:39 - ipo - INFO - Logged in for baba 
-2024-11-12 21:07:39 - ipo - INFO - Starting for user p 
-2024-11-12 21:07:40 - ipo - INFO - Connection established for user p 
-2024-11-12 21:07:42 - ipo - INFO - Tried to get Companies for hajurbuwa (1)
-2024-11-12 21:07:42 - ipo - INFO - Logged in for m 
-2024-11-12 21:07:43 - ipo - INFO - Tried to get Companies for kayc (2)
-2024-11-12 21:07:45 - ipo - INFO - Logged in for p 
-2024-11-12 21:07:45 - ipo - INFO - Tried to get Companies for prajwal (1)
-2024-11-12 21:07:46 - ipo - INFO - Tried to get Companies for smita (2)
-2024-11-12 21:07:46 - ipo - INFO - Tried to get Companies for baba (1)
-2024-11-12 21:07:49 - ipo - INFO - Tried to get Companies for m (1)
-2024-11-12 21:07:50 - ipo - INFO - Tried to get Companies for hajurbuwa (2)
-2024-11-12 21:07:52 - ipo - INFO - Tried to get Companies for kayc (3)
-2024-11-12 21:07:52 - ipo - INFO - Tried to get Companies for p (1)
-2024-11-12 21:07:53 - ipo - INFO - Tried to get Companies for prajwal (2)
-2024-11-12 21:07:54 - ipo - INFO - Tried to get Companies for baba (2)
-2024-11-12 21:07:55 - ipo - INFO - Tried to get Companies for smita (3)
-2024-11-12 21:07:57 - ipo - INFO - No Comapnies available/loaded  kayc 
-2024-11-12 21:07:57 - ipo - INFO - Exited for user kayc
-2024-11-12 21:07:57 - ipo - INFO - Tried to get Companies for m (2)
-2024-11-12 21:07:59 - ipo - INFO - Tried to get Companies for hajurbuwa (3)
-2024-11-12 21:08:00 - ipo - INFO - No Comapnies available/loaded  smita 
-2024-11-12 21:08:00 - ipo - INFO - Exited for user smita
-2024-11-12 21:08:00 - ipo - INFO - Tried to get Companies for p (2)
-2024-11-12 21:08:02 - ipo - INFO - Tried to get Companies for prajwal (3)
-2024-11-12 21:08:04 - ipo - INFO - Tried to get Companies for baba (3)
-2024-11-12 21:08:04 - ipo - INFO - No Comapnies available/loaded  hajurbuwa 
-2024-11-12 21:08:04 - ipo - INFO - Exited for user hajurbuwa
-2024-11-12 21:08:07 - ipo - INFO - Tried to get Companies for m (3)
-2024-11-12 21:08:07 - ipo - INFO - No Comapnies available/loaded  prajwal 
-2024-11-12 21:08:07 - ipo - INFO - Exited for user prajwal
-2024-11-12 21:08:09 - ipo - INFO - No Comapnies available/loaded  baba 
-2024-11-12 21:08:09 - ipo - INFO - Exited for user baba
-2024-11-12 21:08:10 - ipo - INFO - Tried to get Companies for p (3)
-2024-11-12 21:08:12 - ipo - INFO - No Comapnies available/loaded  m 
-2024-11-12 21:08:12 - ipo - INFO - Exited for user m
-2024-11-12 21:08:15 - ipo - INFO - No Comapnies available/loaded  p 
-2024-11-12 21:08:15 - ipo - INFO - Exited for user p
-2024-11-12 21:08:15 - ipo - INFO - Completed :: 0 minutes | 54.0 seconds
+2024-11-22 13:37:35 - ipo_result - DEBUG - Starting for user kayc 
+2024-11-22 13:37:36 - ipo_result - DEBUG - Connection established for user kayc 
+2024-11-22 13:37:38 - ipo_result - DEBUG - Starting for user smita 
+2024-11-22 13:37:39 - ipo_result - DEBUG - Connection established for user smita 
+2024-11-22 13:37:41 - ipo_result - DEBUG - Starting for user hajurbuwa 
+2024-11-22 13:37:41 - ipo_result - DEBUG - Logged in for kayc 
+2024-11-22 13:37:42 - ipo_result - DEBUG - Connection established for user hajurbuwa 
+2024-11-22 13:37:44 - ipo_result - DEBUG - Logged in for smita 
+2024-11-22 13:37:44 - ipo_result - DEBUG - Starting for user prajwal 
+2024-11-22 13:37:44 - ipo_result - DEBUG - Got Companies for kayc 
+2024-11-22 13:37:44 - ipo_result - DEBUG - Checking results for kayc
+2024-11-22 13:37:45 - ipo_result - DEBUG - Connection established for user prajwal 
+2024-11-22 13:37:45 - ipo_result - DEBUG - Problem Logging in prajwal
+2024-11-22 13:37:45 - ipo_result - DEBUG - Problem Logging in prajwal
+2024-11-22 13:37:46 - ipo_result - DEBUG - Got Companies for smita 
+2024-11-22 13:37:46 - ipo_result - DEBUG - Checking results for smita
+2024-11-22 13:37:47 - ipo_result - DEBUG - Logged in for hajurbuwa 
+2024-11-22 13:37:47 - ipo_result - DEBUG - Starting for user baba 
+2024-11-22 13:37:48 - ipo_result - DEBUG - Connection established for user baba 
+2024-11-22 13:37:49 - ipo_result - DEBUG - Got Companies for hajurbuwa 
+2024-11-22 13:37:49 - ipo_result - DEBUG - Checking results for hajurbuwa
+2024-11-22 13:37:50 - ipo_result - DEBUG - Logged in for prajwal 
+2024-11-22 13:37:50 - ipo_result - DEBUG - Starting for user m 
+2024-11-22 13:37:51 - ipo_result - DEBUG - Connection established for user m 
+2024-11-22 13:37:52 - ipo_result - DEBUG - Got Companies for prajwal 
+2024-11-22 13:37:52 - ipo_result - DEBUG - Checking results for prajwal
+2024-11-22 13:37:53 - ipo_result - DEBUG - Logged in for baba 
+2024-11-22 13:37:53 - ipo_result - DEBUG - Starting for user p 
+2024-11-22 13:37:54 - ipo_result - DEBUG - Connection established for user p 
+2024-11-22 13:37:55 - ipo_result - DEBUG - Got Companies for baba 
+2024-11-22 13:37:55 - ipo_result - DEBUG - Checking results for baba
+2024-11-22 13:37:55 - ipo_result - DEBUG - Logged in for m 
+2024-11-22 13:37:58 - ipo_result - DEBUG - Got Companies for m 
+2024-11-22 13:37:58 - ipo_result - DEBUG - Checking results for m
+2024-11-22 13:37:58 - ipo_result - DEBUG - Logged in for p 
+2024-11-22 13:38:00 - ipo_result - DEBUG - Completed for user prajwal 
+2024-11-22 13:38:01 - ipo_result - DEBUG - Got Companies for p 
+2024-11-22 13:38:01 - ipo_result - DEBUG - Checking results for p
+2024-11-22 13:38:03 - ipo_result - DEBUG - Completed for user baba 
+2024-11-22 13:38:09 - ipo_result - DEBUG - Completed for user p 
+2024-11-22 13:38:10 - ipo_result - DEBUG - Completed :: 0 minutes | 35.2 seconds

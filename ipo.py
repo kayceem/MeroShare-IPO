@@ -327,8 +327,13 @@ def create_browser(user, lock):
 
     with lock:
         log.info(f"Starting for user {NAME} ")
-
+    track = 0
     while True:
+        if track == 4:
+            with lock:
+                log.info(f"Connection could not be established {NAME} ")
+                browser.quit()
+                return False
         try:
             browser.get("https://meroshare.cdsc.com.np/#/login")
             with lock:
@@ -344,6 +349,7 @@ def create_browser(user, lock):
         except:
             with lock:
                 log.info(f"Site didnot load {NAME} !!!  ")
+        track += 1
 
     login_failed = 1
     while True:
