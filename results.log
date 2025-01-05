@@ -1,0 +1,43 @@
+2025-01-05 19:03:29 - ipo_result - DEBUG - Starting for user kayc 
+2025-01-05 19:03:30 - ipo_result - DEBUG - Connection established for user kayc 
+2025-01-05 19:03:32 - ipo_result - DEBUG - Starting for user smita 
+2025-01-05 19:03:33 - ipo_result - DEBUG - Connection established for user smita 
+2025-01-05 19:03:35 - ipo_result - DEBUG - Starting for user hajurbuwa 
+2025-01-05 19:03:35 - ipo_result - DEBUG - Logged in for kayc 
+2025-01-05 19:03:36 - ipo_result - DEBUG - Connection established for user hajurbuwa 
+2025-01-05 19:03:38 - ipo_result - DEBUG - Starting for user prajwal 
+2025-01-05 19:03:38 - ipo_result - DEBUG - Logged in for smita 
+2025-01-05 19:03:38 - ipo_result - DEBUG - Got Companies for kayc 
+2025-01-05 19:03:38 - ipo_result - DEBUG - Checking results for kayc
+2025-01-05 19:03:39 - ipo_result - DEBUG - Connection established for user prajwal 
+2025-01-05 19:03:41 - ipo_result - DEBUG - Starting for user baba 
+2025-01-05 19:03:41 - ipo_result - DEBUG - Logged in for hajurbuwa 
+2025-01-05 19:03:41 - ipo_result - DEBUG - Got Companies for smita 
+2025-01-05 19:03:42 - ipo_result - DEBUG - Checking results for smita
+2025-01-05 19:03:42 - ipo_result - DEBUG - Connection established for user baba 
+2025-01-05 19:03:44 - ipo_result - DEBUG - Got Companies for hajurbuwa 
+2025-01-05 19:03:44 - ipo_result - DEBUG - Checking results for hajurbuwa
+2025-01-05 19:03:44 - ipo_result - DEBUG - Starting for user m 
+2025-01-05 19:03:45 - ipo_result - DEBUG - Logged in for prajwal 
+2025-01-05 19:03:46 - ipo_result - DEBUG - Connection established for user m 
+2025-01-05 19:03:47 - ipo_result - DEBUG - Completed for user kayc 
+2025-01-05 19:03:47 - ipo_result - DEBUG - Starting for user p 
+2025-01-05 19:03:48 - ipo_result - DEBUG - Got Companies for prajwal 
+2025-01-05 19:03:48 - ipo_result - DEBUG - Checking results for prajwal
+2025-01-05 19:03:48 - ipo_result - DEBUG - Logged in for baba 
+2025-01-05 19:03:49 - ipo_result - DEBUG - Connection established for user p 
+2025-01-05 19:03:50 - ipo_result - DEBUG - Completed for user smita 
+2025-01-05 19:03:51 - ipo_result - DEBUG - Got Companies for baba 
+2025-01-05 19:03:51 - ipo_result - DEBUG - Checking results for baba
+2025-01-05 19:03:51 - ipo_result - DEBUG - Logged in for m 
+2025-01-05 19:03:53 - ipo_result - DEBUG - Completed for user hajurbuwa 
+2025-01-05 19:03:54 - ipo_result - DEBUG - Logged in for p 
+2025-01-05 19:03:54 - ipo_result - DEBUG - Got Companies for m 
+2025-01-05 19:03:54 - ipo_result - DEBUG - Checking results for m
+2025-01-05 19:03:56 - ipo_result - DEBUG - Completed for user prajwal 
+2025-01-05 19:03:57 - ipo_result - DEBUG - Got Companies for p 
+2025-01-05 19:03:57 - ipo_result - DEBUG - Checking results for p
+2025-01-05 19:03:59 - ipo_result - DEBUG - Completed for user baba 
+2025-01-05 19:04:02 - ipo_result - DEBUG - Completed for user m 
+2025-01-05 19:04:05 - ipo_result - DEBUG - Completed for user p 
+2025-01-05 19:04:05 - ipo_result - DEBUG - Completed :: 0 minutes | 36.5 seconds
