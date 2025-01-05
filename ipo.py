@@ -26,7 +26,7 @@ logging.basicConfig(
     level=logging.DEBUG,
     datefmt='%Y-%m-%d %H:%M:%S',
     format='%(asctime)s - %(module)s - %(levelname)s - %(message)s',
-    handlers=[logging.FileHandler('app.log', mode='w'),logging.StreamHandler()]
+    handlers=[logging.FileHandler('ipo.log', mode='a'),logging.StreamHandler()]
 )
 logging.getLogger('selenium').setLevel(logging.ERROR)
 logging.getLogger('urllib3').setLevel(logging.ERROR)
@@ -300,7 +300,7 @@ def login(browser, DP, USERNAME, PASSWD):
         return False
 
 
-def create_browser(user, lock):
+def create_browser(user, lock, headless):
     NAME, DP, USERNAME, PASSWD, _, _, _ = user
     # fernet = Fernet(key)
     # pin_number = (fernet.decrypt(PIN.encode())).decode()
@@ -311,7 +311,8 @@ def create_browser(user, lock):
         option = Options()
         option.binary_location = str(BINARY_PATH)
         option.use_chromium = True
-        option.add_argument("headless")
+        if headless:
+            option.add_argument("headless")
         option.add_experimental_option("excludeSwitches", ["enable-logging"])
         option.add_argument("--disable-extensions")
         option.add_argument("--disable-gpu")
@@ -409,6 +410,7 @@ def main(default):
         if not BINARY_PATH.exists() or not DRIVER_PATH.exists():
             return
 
+    headless = False
     user_data = []
     temp = []
     thread_list = []
@@ -477,7 +479,7 @@ def main(default):
     # print(executor._max_workers)
     # print(os.cpu_count())
     for user in user_data:
-        executor.submit(create_browser, user, lock)
+        executor.submit(create_browser, user, lock, headless)
         # thread_list.append(executor.submit(create_browser, user, lock))
         sleep(WAIT_TIME)
 
