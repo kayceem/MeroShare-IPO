@@ -24,7 +24,7 @@ logging.basicConfig(
     level=logging.DEBUG,
     datefmt="%Y-%m-%d %H:%M:%S",
     format="%(asctime)s - %(module)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler("app.log", mode="w"), logging.StreamHandler()],
+    handlers=[logging.FileHandler("results.log", mode="w"), logging.StreamHandler()],
 )
 logging.getLogger("selenium").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
@@ -36,26 +36,14 @@ BINARY_PATH = DIR_PATH / "chrome/chrome"
 DRIVER_PATH = DIR_PATH / "chrome/chromedriver"
 key = ""
 USER = []
+results = {}
 
 
-def update_file(results, NAME):
+def update_file():
     filename = f"{DIR_PATH}/Results/IPO_Results.txt"
-    text = ""
     os.makedirs(os.path.dirname(filename), exist_ok=True)
-    try:
-        with open(filename, "r", encoding="utf-8") as fp:
-            text = fp.read()
-    except:
-        pass
 
-    # Create a file with with users name
     with open(filename, "w", encoding="utf-8") as fp:
-        if len(text):
-            fp.write(text)
-        # Logging date and time
-        fp.write(NAME)
-
-        # If no shares to apply
         if not len(results):
             fp.write(": No Result")
             fp.write("\n")
@@ -64,21 +52,24 @@ def update_file(results, NAME):
             return
 
         # Wrtitng the applied shares to the file
-        for result in results:
+        for name, result in results.items():
+            fp.write(name)
             fp.write("\n")
+            fp.write("-" * 60)
             fp.write("\n")
-            fp.write(result[0] + "\n\n" + result[1] + "\n" + result[2] + "\n")
-            fp.write("-" * 30)
-        fp.write("\n")
-        fp.write("-" * 90)
-        fp.write("\n\n")
+            for res in result:
+                fp.write(res[0] + "\n" + res[1] + "\n" + res[2] + "\n")
+                fp.write("-" * 60)
+                fp.write("\n")
+            fp.write("\n\n")
+            fp.write("*" * 60)
+            fp.write("\n\n")
     return
 
 
-def check_result(browser, info):
-    result = []
+def check_result(browser, info, NAME):
     for index, data in enumerate(info):
-        name = data[0]
+        name = data[1]
         try:
             WebDriverWait(browser, 10).until(EC.presence_of_element_located((By.XPATH, f"(//button[@type='button'])[{index+6}]"))).click()
         except:
@@ -97,9 +88,12 @@ def check_result(browser, info):
         remarks = browser.find_element(By.XPATH, f"(//div[@class='row'])[11]")
         remarks = remarks.text.replace("\n", " :: ")
         status = status.text.replace("\n", " :: ")
-        result.append([name, status, remarks])
+        if name in results.keys():
+            results[name].append([NAME, status, remarks])
+        else:
+            results[name] = [[NAME, status, remarks]]
         browser.find_element(By.XPATH,"/html/body/app-dashboard/div/main/div/app-application-report/div/div[1]/div/div[1]/div/div/div/button",).click()
-    return result
+    return
 
 
 def get_companies(browser, lock, NAME):
@@ -186,7 +180,7 @@ def create_browser(user, lock):
         option = Options()
         option.binary_location = str(BINARY_PATH)
         option.use_chromium = True
-        # option.add_argument("headless")
+        option.add_argument("headless")
         option.add_experimental_option("excludeSwitches", ["enable-logging"])
         option.add_argument("--disable-extensions")
         option.add_argument("--disable-gpu")
@@ -264,10 +258,9 @@ def create_browser(user, lock):
     #  Check result available companies
     with lock:
         log.debug(f"Checking results for {NAME}")
-    results = check_result(browser, companies_available)
+    check_result(browser, companies_available, NAME)
     with lock:
-        print(results)
-        update_file(results, NAME)
+        update_file()
 
     # Quiting the browser
     with lock:
