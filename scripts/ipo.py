@@ -1,41 +1,28 @@
 #!/home/kayc/Code/Python/MeroShare-IPO/.venv/bin/python
 
 import argparse
-import logging
 from sys import exit
 import os
 from time import sleep, perf_counter
 from threading import RLock
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 from cryptography.fernet import Fernet
 
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 
-from pathlib import Path
+from database.database import get_db
+from database.models import Applied, User
+from utils.utils import create_browser, get_dir_path, get_logger 
+from dotenv import load_dotenv
 
-from chrome_helper import setup_chrome_and_driver
-logging.basicConfig(
-    level=logging.DEBUG,
-    datefmt='%Y-%m-%d %H:%M:%S',
-    format='%(asctime)s - %(module)s - %(levelname)s - %(message)s',
-    handlers=[logging.FileHandler('ipo.log', mode='a'),logging.StreamHandler()]
-)
-logging.getLogger('selenium').setLevel(logging.ERROR)
-logging.getLogger('urllib3').setLevel(logging.ERROR)
+load_dotenv()
+DIR_PATH = get_dir_path()
+log = get_logger("ipo")
 
-log = logging.getLogger(__name__)
-
-DIR_PATH = Path(__file__).parent 
-BINARY_PATH = DIR_PATH / "chrome/chrome"
-DRIVER_PATH = DIR_PATH / "chrome/chromedriver"
 key = ""
 USER = []
 DATA = []
@@ -51,47 +38,27 @@ bank_id = {"11500": "49", "17300": "42", "10400": "37", "13700": "44", "12600": 
 
 
 def save_screenshot(browser, NAME, name, share_applied):
-    filename = f"{DIR_PATH}/Results/{name}/{NAME}_{share_applied}.png"
+    filename = f"{DIR_PATH}/screenshots/{name}/{NAME}_{share_applied}.png"
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     browser.get("https://meroshare.cdsc.com.np/#/asba")
     sleep(2)
     browser.save_screenshot(filename)
     return
 
-def update_file(applied_shares, NAME="Default"):
-    filename = f"{DIR_PATH}/Results/Results.txt"
-    text = ""
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
-    try:
-        with open(filename, "r", encoding="utf-8") as fp:
-            text = fp.read()
-    except:
-        pass
-
-    # Create a file with with users name
-    with open(filename, "w", encoding="utf-8") as fp:
-        fp.write(text)
-        # Logging date and time
-        fp.write(str(datetime.now().strftime("%I:%M:%S")))
-        fp.write("\n")
-        fp.write(f"{NAME}")
-
-        # If no shares to apply
-        if len(applied_shares) == 0:
-            fp.write(": No shares to apply")
-            fp.write("\n")
-            fp.write("-" * 30)
-            fp.write("\n\n")
-            return
-
-        # Wrtitng the applied shares to the file
-        for shares in applied_shares:
-            name, _, _, ipo, share_type, button = shares
-            temp = name + " | " + ipo + " | " + share_type + " | " + button + " | " + "\n"
-            fp.write(f": {temp}")
-        fp.write("-" * 30)
-        fp.write("\n\n")
+def update_database(username, applied_shares):
+    if len(applied_shares) == 0:
         return
+    with get_db() as db:
+        for shares in applied_shares:
+            ipo_name, _, _, ipo, share_type, button = shares
+            existing_entry = db.query(Applied).filter(Applied.name == username and Applied.ipo_name == ipo_name).first()
+            if existing_entry:
+                existing_entry.button = button
+                existing_entry.share_type = share_type
+            else:
+                db.add(Applied(name=username, ipo_name=ipo_name, ipo=ipo, share_type=share_type, button=button))
+        db.commit()
+    return
 
 
 def apply_share(browser, CRN, PIN, DP, ipo, ACCOUNT_NUMBER):
@@ -138,11 +105,9 @@ def apply_share(browser, CRN, PIN, DP, ipo, ACCOUNT_NUMBER):
         browser.find_element(By.XPATH, "/html/body/app-dashboard/div/main/div/app-re-apply/div/div/wizard/div/wizard-step[1]/form/div[2]/div/div[4]/div[2]/div/button[1]").click()
     sleep(1)
 
-    fernet = Fernet(key)
-    pin_number = (fernet.decrypt(PIN.encode())).decode()
     # Entering pin
     pin = WebDriverWait(browser, 2).until(EC.presence_of_element_located((By.ID, "transactionPIN")))
-    pin.send_keys(f"{pin_number}")
+    pin.send_keys(f"{PIN}")
     # breakpoint()
 
     # Clicking on apply button
@@ -194,38 +159,29 @@ def check_to_apply(browser, user, info, lock):
             browser.find_element(By.XPATH, f"/html/body/app-dashboard/div/main/div/app-asba/div/div[2]/app-applicable-issue/div/div/div/div/div[{index+1}]/div/div[2]/div/div[4]/button").click()
         except:
             browser.find_element(By.XPATH, f"/html/body/app-dashboard/div/main/div/app-asba/div/div[2]/app-applicable-issue/div/div/div/div/div[{index+1}]/div/div[2]/div/div[3]/button").click()
-        track = 1
-        #  Applying the share
-        while True:
-            if track == 4:
-                break
+
+        for attempt in range(4):
             try:
                 share_applied = apply_share(browser, CRN, PIN, DP, ipo, ACCOUNT_NUMBER)
-                if not share_applied:
-                    raise Exception
-
-                save_screenshot(browser, NAME, name, share_applied)
-                with lock:
-                    log.info(f"Applied shares for {NAME} : {name} : {share_applied} shares")
-
-                quantities.append(share_applied)
-                # Storing applied shares in a list
-                applied_shares.append(data)
-                break
-            except:
+                if share_applied:
+                    save_screenshot(browser, NAME, name, share_applied)
+                    with lock:
+                        log.info(f"Applied shares for {NAME} : {name} : {share_applied} shares")
+                    quantities.append(share_applied)
+                    applied_shares.append(data)
+                    break
+            except Exception as e:
                 browser.get(browser.current_url)
-                with lock:
-                    log.info(f"Could not apply {NAME} : {name} ({track})")
-                track += 1
-    # Writing the results to a file
+            with lock:
+                log.info(f"Could not apply {NAME} : {name} (Attempt {attempt + 1}): {e}")
+                
     with lock:
-        update_file(applied_shares, NAME)
+        update_database(NAME,applied_shares)
     return
 
 
 def check_for_companies(browser, lock, NAME):
     info = []
-    track = 1
 
     # Navigating to ABSA
     browser.get("https://meroshare.cdsc.com.np/#/asba")
@@ -238,12 +194,8 @@ def check_for_companies(browser, lock, NAME):
     except:
         pass
 
-    while True:
-        if track == 4:
-            with lock:
-                log.info(f"No Comapnies available/loaded  {NAME} ")
-                print(f"No Comapnies available/loaded  {NAME} ")
-            return False
+    for attempt in range(1,5):
+      
         # Getting all the companies from Apply Issue
         try:
             WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "company-list")))
@@ -255,11 +207,17 @@ def check_for_companies(browser, lock, NAME):
             break
         except:
             with lock:
-                log.info(f"Tried to get Companies for {NAME} ({track})")
-                print(f"Tried to get Companies for {NAME} ({track})")
+                log.info(f"Tried to get Companies for {NAME} ({attempt})")
+                print(f"Tried to get Companies for {NAME} ({attempt})")
             browser.get("https://meroshare.cdsc.com.np/#/asba")
-            sleep(2 + track)
-            track += 1
+            sleep(2 + attempt)
+
+        if attempt == 4:
+            with lock:
+                log.info(f"No Comapnies available/loaded  {NAME} ")
+                print(f"No Comapnies available/loaded  {NAME} ")
+            return False
+        
     # Storing all the information of comapnies from the web elements as list in a list : info
     for shares in shares_available:
         info.append(shares.text.split("\n"))
@@ -281,11 +239,9 @@ def login(browser, DP, USERNAME, PASSWD):
     username = browser.find_element(By.ID, "username")
     username.send_keys(f"{USERNAME}")
 
-    fer = Fernet(key)
-    pass_word = fer.decrypt(PASSWD.encode()).decode()
     # Password feild
     passwd = browser.find_element(By.ID, "password")
-    passwd.send_keys(f"{pass_word}")
+    passwd.send_keys(f"{PASSWD}")
     sleep(0.5)
     # Login button
     LOGIN = browser.find_element(By.XPATH, "/html/body/app-login/div/div/div/div/div/div/div[1]/div/form/div/div[4]/div/button")
@@ -300,75 +256,35 @@ def login(browser, DP, USERNAME, PASSWD):
         return False
 
 
-def create_browser(user, lock, headless):
+def start(user, lock, headless):
     NAME, DP, USERNAME, PASSWD, _, _, _ = user
-    # fernet = Fernet(key)
-    # pin_number = (fernet.decrypt(PIN.encode())).decode()
-    # breakpoint()
     # Opening edge driver
-    try:
-        ser = Service(str(DRIVER_PATH))
-        option = Options()
-        option.binary_location = str(BINARY_PATH)
-        option.use_chromium = True
-        if headless:
-            option.add_argument("headless")
-        option.add_experimental_option("excludeSwitches", ["enable-logging"])
-        option.add_argument("--disable-extensions")
-        option.add_argument("--disable-gpu")
-        option.add_argument("start-maximized")
-        option.add_argument("--disable-inforbars")
-        option.add_argument("--no-sandbox")
-        option.add_argument("dom.disable_beforeunload=true")
-        option.add_argument("--log-level=3")
-        browser = webdriver.Chrome(service=ser, options=option)
-    except Exception as e:
-        print(e)
-        return False
+    with create_browser(headless) as browser:
 
-    with lock:
         log.info(f"Starting for user {NAME} ")
-    track = 0
-    while True:
-        if track == 4:
-            with lock:
-                log.info(f"Connection could not be established {NAME} ")
-                browser.quit()
-                return False
-        try:
-            browser.get("https://meroshare.cdsc.com.np/#/login")
-            with lock:
-                log.info(f"Connection established for user {NAME} ")
-            sleep(0.5)
-        except:
-            with lock:
-                log.info(f"Connection failed for user {NAME} ")
-            continue
-        try:
-            check = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.ID, "username")))
-            break
-        except:
-            with lock:
-                log.info(f"Site didnot load {NAME} !!!  ")
-        track += 1
-
-    login_failed = 1
-    while True:
-        while True:
-            if login_failed > 4:
-                login_failed = True
-                break
+        for attempt in range(4):
             try:
-                #  Calling the login function
-                logged_in = login(browser, DP, USERNAME, PASSWD)
+                browser.get("https://meroshare.cdsc.com.np/#/login")
+                with lock:
+                    log.info(f"Connection established for user {NAME} ")
+                sleep(0.5)
+                WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.ID, "username")))
+                break
+            except Exception as e:
+                with lock:
+                    log.info(f"Connection attempt {attempt + 1} failed for user {NAME}: {e}")
+                if attempt == 3:
+                    with lock:
+                        log.info(f"Connection could not be established for user {NAME} after 4 attempts")
+                    return False
 
+        for attempt in range(4):
+            try:
+                logged_in = login(browser, DP, USERNAME, PASSWD)
                 if not logged_in:
                     raise Exception
-
                 with lock:
                     log.info(f"Logged in for {NAME} ")
-
-                login_failed = False
                 break
             except:
                 browser.get_screenshot_as_file(f"Errors/{NAME.lower()}_{login_failed}.png")
@@ -377,110 +293,68 @@ def create_browser(user, lock, headless):
                 with lock:
                     log.info(f"Problem Logging in {NAME}")
 
-        if login_failed:
-            companies_available = False
-            break
-        #  Checks if comapnies are available
-        companies_available = check_for_companies(browser, lock, NAME)
-        if companies_available == "not_authorized":
-            browser.get("https://meroshare.cdsc.com.np/#/login")
-            continue
-        break
+        # Checks for companies available
+        if logged_in:
+            companies_available = check_for_companies(browser, lock, NAME)
+            if companies_available == "not_authorized":
+                with lock:
+                    log.info(f"User unauthorized {NAME}")
+                return False
 
-    if not companies_available:
+        if not companies_available:
+            with lock:
+                log.info(f"Exited for user {NAME}")
+            return False
+
+        #  Tries to apply available companies
+        check_to_apply(browser, user, companies_available, lock)
+
+        # Quiting the browser
         with lock:
-            log.info(f"Exited for user {NAME}")
-
-        return False
-
-    #  Tries to apply available companies
-    check_to_apply(browser, user, companies_available, lock)
-
-    # Quiting the browser
-    with lock:
-        log.info(f"Completed for user {NAME} ")
-    browser.quit()
-    return True
+            log.info(f"Completed for user {NAME} ")
+        return True
 
 
-def main(default):
-    if not BINARY_PATH.exists() or not DRIVER_PATH.exists():
-        setup_chrome_and_driver()
-        sleep(5)
-        if not BINARY_PATH.exists() or not DRIVER_PATH.exists():
-            return
-
-    headless = False
+def main(default, headless):
     user_data = []
-    temp = []
-    thread_list = []
     lock = RLock()
-    check = False
-    path = DIR_PATH / "Results"
-    # os.system("clear")
-    try:
-        os.remove(f"{path}/Results.txt")
-        os.remove(f"{path}/logs.txt")
-    except:
-        pass
-    SINGLE_USER = ""
+    
     WAIT_TIME = 3
     if not default:
-        #  Asks user for wait time
         try:
             WAIT_TIME = int(input("Enter wait time between each user: "))
-            if WAIT_TIME < 3:
-                WAIT_TIME = 3
-            if WAIT_TIME > 10:
-                WAIT_TIME = 10
+            WAIT_TIME = max(3, min(10, WAIT_TIME))
         except:
             WAIT_TIME = 3
-
-        # Asks is user wants to use only for single user
-        SINGLE_USER = (input("Enter the user you want to apply: ")).upper()
+        user = (input("Enter the user you want to apply: ")).lower().strip()
         print()
 
-    # Checks for key in key.key
-    try:
-        with open(f"{DIR_PATH}/Source Files/key.key", "r", encoding="utf-8") as fp:
-            global key
-            key = fp.read()
-            key = key.encode()
-    except:
-        log.info(f"No key Found! ")
+    # Checks for key
+    key = os.getenv("KEY")
+    if not key:
+        print("Key not found")
         return
-    # Checks for database
-    try:
-        with open(f"{DIR_PATH}/Source Files/dataBase.txt", "r", encoding="utf-8") as fp:
-            lines = fp.read().splitlines()
-            for line in lines:
-                data = line.split(",")
-                if len(data) != 7:
-                    continue
-                user_data.append(data)
-                USER.append(data[0])
-    except:
-        log.info(f"Data Base not found! ")
-        return
-    # Checks for single user
-    for index, user in enumerate(user_data):
-        if not user[0].upper() == SINGLE_USER:
-            continue
-        temp.append(user_data.pop(index))
-        check = True
-        break
+    fernet = Fernet(key)
+    if user:
+        with get_db() as db:
+            user = db.query(user).filter(User.name == user).first()
+            if not user:
+                print("User not found")
+                return
+            user_data.append((user.name, user.dp, user.boid, (fernet.decrypt(user.passsword.encode())).decode(), user.crn, (fernet.decrypt(user.pin.encode())).decode(), user.account))
+    else:
+        with get_db() as db:
+            users = db.query(User).all()
+            for user in users:
+                user_data.append((user.name, user.dp, user.boid, (fernet.decrypt(user.passsword.encode())).decode(), user.crn, (fernet.decrypt(user.pin.encode())).decode(), user.account))
 
-    if check:
-        user_data = temp
-    DATA.append(user_data)
 
     start_time = perf_counter()
     executor = ThreadPoolExecutor()
     # print(executor._max_workers)
     # print(os.cpu_count())
     for user in user_data:
-        executor.submit(create_browser, user, lock, headless)
-        # thread_list.append(executor.submit(create_browser, user, lock))
+        executor.submit(start, user, lock, headless)
         sleep(WAIT_TIME)
 
     executor.shutdown()
@@ -502,8 +376,14 @@ if __name__ == "__main__":
         default=False,
         help="Whether to use default values or not",
         )
+        parser.add_argument(
+        "--headless",
+        type=bool,
+        default=True,
+        help="Whether to use headless browser",
+        )
         args = parser.parse_args()
-        main(args.default)
+        main(args.default, args.headless)
     except KeyboardInterrupt:
         input("Interrupted!!!")
         try:
