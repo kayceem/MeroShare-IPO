@@ -12,8 +12,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from database.database import  get_db
-from database.models import  Result, User
-from utils.utils import create_browser, get_dir_path, get_logger
+from database.models import  Result, User, UserResult
+from utils.utils import create_browser, get_dir_path, get_fernet_key, get_logger
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -21,28 +21,39 @@ log = get_logger('ipo-result')
 DIR_PATH = get_dir_path()
 
 
-def update_file(results):
-    if len(results) == 0:
+def update_database(data, USER_ID):
+    if len(data) == 0:
         return
-    with get_db() as db:
-        for name, result in results.items():
-            entry = {"script": name}
-            for res in result:
-                entry[res[0]] = res[1].split('::')[1].strip() + " - " + res[2].split('::')[1].strip()
-            existing_entry = db.query(Result).filter(Result.script == name).first()
-            if existing_entry:
-                for key, value in entry.items():
-                    setattr(existing_entry, key, value)
-            else:
-                db.add(Result(**entry))
-        db.commit()
+    log.info("Updating results in database")
+    try:
+        with get_db() as db:
+            for script, values in data.items():
+                result = db.query(Result).filter(Result.script == script).first()
+                if not result:
+                    result = Result(script=script)
+                    db.add(result)
+                    db.commit()
+                for value in values:
+                    user_result_value = value[0] + " - " + value[1]
+                    user_result = (db.query(UserResult).filter(UserResult.user_id == USER_ID,UserResult.type == value[2],UserResult.result_id == result.id,).first())
+                    if user_result:
+                        user_result.value = user_result_value
+                    else:
+                        db.add(UserResult(user_id=USER_ID, type=value[2], value=user_result_value, result=result))
+                db.commit()
+
+            log.info("Database updated")
+    except Exception as e:
+        log.error(f"Error updating database: {USER_ID} - {e}")
     return
 
 
-def check_result(browser, info, NAME, lock):
+def check_result(browser, info, lock, NAME):
     results = defaultdict(list)
+    log.info(f"Checking results for {NAME}")
     for index, data in enumerate(info):
         name = data[1]
+        type = data[4]
         try:
             WebDriverWait(browser, 10).until(EC.presence_of_element_located((By.XPATH, f"(//button[@type='button'])[{index+6}]"))).click()
         except:
@@ -51,15 +62,16 @@ def check_result(browser, info, NAME, lock):
         for _ in range(3):
             try:
                 status = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.XPATH, "(//div[@class='row'])[10]")))
+                remarks = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.XPATH, f"(//div[@class='row'])[11]")))
                 break
             except:
                 browser.refresh()
-        remarks = browser.find_element(By.XPATH, f"(//div[@class='row'])[11]")
-        remarks = remarks.text.replace("\n", " :: ")
-        status = status.text.replace("\n", " :: ")
-        with lock:
-            results[name].append([NAME, status, remarks])
+                sleep(2)
+        remarks = remarks.text.split("\n")[1].strip()
+        status = status.text.split("\n")[1].strip()
+        results[name].append([status, remarks, type])
         browser.find_element(By.XPATH,"/html/body/app-dashboard/div/main/div/app-application-report/div/div[1]/div/div[1]/div/div/div/button",).click()
+    log.info(f"Checks completed for {NAME}")
     return results
 
 
@@ -85,7 +97,7 @@ def get_companies(browser, lock, NAME):
             # gets lists of web element
             shares_available = browser.find_elements(By.CLASS_NAME, "company-list")
             with lock:
-                log.debug(f"Got Companies for {NAME} ")
+                log.info(f"Got Companies for {NAME} ")
             break
         except:
             with lock:
@@ -96,7 +108,7 @@ def get_companies(browser, lock, NAME):
                 log.debug(f"No Comapnies available/loaded  {NAME} ")
                 return False
     # Storing all the information of comapnies from the web elements as list in a list : info
-    for shares in shares_available[:5]:
+    for shares in shares_available[:3]:
         info.append(shares.text.split("\n"))
     return info
 
@@ -105,7 +117,7 @@ def login(browser, DP, USERNAME, PASSWD):
     try:
         # Dp drop down menu
         WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.ID, "selectBranch"))).click()
-        # Dp feild
+        # Dp field
         dp = browser.find_element(By.XPATH, "/html/body/span/span/span[1]/input")
         dp.send_keys(f"{DP}")
         dp.send_keys(Keys.RETURN)
@@ -134,9 +146,8 @@ def login(browser, DP, USERNAME, PASSWD):
 
 
 def start(user, lock):
-    NAME, DP, USERNAME, PASSWD, _, _, _ = user
+    NAME, DP, USERNAME, PASSWD, _, _, _, USER_ID = user
     with create_browser() as browser:
-
         log.info(f"Starting for user {NAME} ")
         for attempt in range(4):
             try:
@@ -148,7 +159,7 @@ def start(user, lock):
                 break
             except Exception as e:
                 with lock:
-                    log.info(f"Connection attempt {attempt + 1} failed for user {NAME}: {e}")
+                    log.info(f"Connection attempt {attempt + 1} failed for user {NAME}")
                 if attempt == 3:
                     with lock:
                         log.info(f"Connection could not be established for user {NAME} after 4 attempts")
@@ -165,11 +176,9 @@ def start(user, lock):
             except:
                 browser.get_screenshot_as_file(f"Errors/{NAME.lower()}_{login_failed}.png")
                 browser.get("https://meroshare.cdsc.com.np/#/login")
-                login_failed += 1
                 with lock:
                     log.info(f"Problem Logging in {NAME}")
 
-                # Checks for companies available
         if logged_in:
             companies_to_check = get_companies(browser, lock, NAME)
             if companies_to_check == "not_authorized":
@@ -186,10 +195,10 @@ def start(user, lock):
         with lock:
             log.debug(f"Checking results for {NAME}")
 
-        results = check_result(browser, companies_to_check, NAME, lock)
+        results = check_result(browser, companies_to_check, lock, NAME)
 
         with lock:
-            update_file(results)
+            update_database(results, USER_ID)
 
         # Quiting the browser
         with lock:
@@ -197,31 +206,26 @@ def start(user, lock):
         return True
 
 
-def main():
-    user_data = []
+def ipo_result():
     lock = RLock()
     WAIT_TIME = 3
 
-    key = os.getenv("KEY")
-    if not key:
-        print("Key not found")
+    fernet = get_fernet_key()
+    if not fernet:
+        log.error("Key not found")
         return
-    fernet = Fernet(key)
+        
     with get_db() as db:
         users = db.query(User).all()
-        for user in users:
-            if user.name != "m" and user.name != "p":
-                continue
-            user_data.append((user.name, user.dp, user.boid, (fernet.decrypt(user.passsword.encode())).decode(), user.crn, (fernet.decrypt(user.pin.encode())).decode(), user.account))
+        user_data = [[user.name, user.dp, user.boid, (fernet.decrypt(user.passsword.encode())).decode(), user.crn, (fernet.decrypt(user.pin.encode())).decode(), user.account, user.id] for user in users]
 
-        
+    log.debug("Starting IPO Result")
     start_time = perf_counter()
     executor = ThreadPoolExecutor()
     for user in user_data:
         executor.submit(start, user, lock)
         sleep(WAIT_TIME)
-
-    executor.shutdown()
+    executor.shutdown(wait=True)
     end_time = perf_counter()
 
     time_delta = end_time - start_time
@@ -231,13 +235,3 @@ def main():
 
     return
 
-
-if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        input("Interrupted!!!")
-        try:
-            exit(0)
-        except SystemExit:
-            os._exit(0)

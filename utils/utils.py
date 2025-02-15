@@ -1,6 +1,7 @@
 import os
 import logging
-
+from dotenv import load_dotenv
+from cryptography.fernet import Fernet
 from pathlib import Path
 from utils.chrome_helper import setup_chrome_and_driver
 
@@ -44,9 +45,9 @@ def create_browser(headless: bool = True):
             if browser:
                 browser.quit()
                 
-def get_logger(app="app"):
+def get_logger(app="app", level=logging.INFO):
     logging.basicConfig(
-    level=logging.DEBUG,
+    level=level,
     datefmt='%Y-%m-%d %H:%M:%S',
     format='%(asctime)s - %(module)s - %(levelname)s - %(message)s',
     handlers=[logging.FileHandler(os.path.join(get_dir_path(), "logs", f"{app}.log"), mode='a'),logging.StreamHandler()]
@@ -56,3 +57,9 @@ def get_logger(app="app"):
 
     log = logging.getLogger(__name__)
     return log
+
+def get_fernet_key():
+    key = os.getenv("KEY")
+    if not key:
+        return None
+    return Fernet(key)

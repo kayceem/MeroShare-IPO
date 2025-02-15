@@ -1,7 +1,5 @@
 #!/home/kayc/Code/Python/MeroShare-IPO/.venv/bin/python
 
-import argparse
-from sys import exit
 import os
 from time import sleep, perf_counter
 from threading import RLock
@@ -15,8 +13,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 
 from database.database import get_db
-from database.models import Applied, User
-from utils.utils import create_browser, get_dir_path, get_logger 
+from database.models import Application, User
+from utils.utils import create_browser, get_dir_path, get_fernet_key, get_logger 
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -45,18 +43,18 @@ def save_screenshot(browser, NAME, name, share_applied):
     browser.save_screenshot(filename)
     return
 
-def update_database(username, applied_shares):
+def update_database(username,user_id, applied_shares):
     if len(applied_shares) == 0:
         return
     with get_db() as db:
         for shares in applied_shares:
             ipo_name, _, _, ipo, share_type, button = shares
-            existing_entry = db.query(Applied).filter(Applied.name == username and Applied.ipo_name == ipo_name).first()
+            existing_entry = db.query(Application).filter(Application.name == username and Application.ipo_name == ipo_name).first()
             if existing_entry:
                 existing_entry.button = button
                 existing_entry.share_type = share_type
             else:
-                db.add(Applied(name=username, ipo_name=ipo_name, ipo=ipo, share_type=share_type, button=button))
+                db.add(Application(user_id=user_id, name=username, ipo_name=ipo_name, ipo=ipo, share_type=share_type, button=button))
         db.commit()
     return
 
@@ -123,7 +121,7 @@ def apply_share(browser, CRN, PIN, DP, ipo, ACCOUNT_NUMBER):
 def check_to_apply(browser, user, info, lock):
     applied_shares = []
     quantities = []
-    NAME, DP, _, _, CRN, PIN,ACCOUNT_NUMBER = user
+    NAME, DP, _, _, CRN, PIN,ACCOUNT_NUMBER, USER_ID = user
 
     for index, data in enumerate(info):
         # Checking if there is a button
@@ -173,10 +171,10 @@ def check_to_apply(browser, user, info, lock):
             except Exception as e:
                 browser.get(browser.current_url)
             with lock:
-                log.info(f"Could not apply {NAME} : {name} (Attempt {attempt + 1}): {e}")
+                log.info(f"Could not apply {NAME} : {name} (Attempt {attempt + 1})")
                 
     with lock:
-        update_database(NAME,applied_shares)
+        update_database(NAME,USER_ID,applied_shares)
     return
 
 
@@ -257,8 +255,8 @@ def login(browser, DP, USERNAME, PASSWD):
 
 
 def start(user, lock, headless):
-    NAME, DP, USERNAME, PASSWD, _, _, _ = user
-    # Opening edge driver
+    NAME, DP, USERNAME, PASSWD, _, _, _, _ = user
+
     with create_browser(headless) as browser:
 
         log.info(f"Starting for user {NAME} ")
@@ -272,7 +270,7 @@ def start(user, lock, headless):
                 break
             except Exception as e:
                 with lock:
-                    log.info(f"Connection attempt {attempt + 1} failed for user {NAME}: {e}")
+                    log.info(f"Connection attempt {attempt + 1} failed for user {NAME}")
                 if attempt == 3:
                     with lock:
                         log.info(f"Connection could not be established for user {NAME} after 4 attempts")
@@ -315,40 +313,29 @@ def start(user, lock, headless):
         return True
 
 
-def main(default, headless):
+def ipo(skip_input, headless):
     user_data = []
     lock = RLock()
-    
     WAIT_TIME = 3
-    if not default:
-        try:
-            WAIT_TIME = int(input("Enter wait time between each user: "))
-            WAIT_TIME = max(3, min(10, WAIT_TIME))
-        except:
-            WAIT_TIME = 3
+
+    if not skip_input:
         user = (input("Enter the user you want to apply: ")).lower().strip()
-        print()
 
-    # Checks for key
-    key = os.getenv("KEY")
-    if not key:
-        print("Key not found")
+    fernet = get_fernet_key()
+    if not fernet:
+        log.error("Key not found")
         return
-    fernet = Fernet(key)
-    if user:
-        with get_db() as db:
-            user = db.query(user).filter(User.name == user).first()
-            if not user:
-                print("User not found")
-                return
-            user_data.append((user.name, user.dp, user.boid, (fernet.decrypt(user.passsword.encode())).decode(), user.crn, (fernet.decrypt(user.pin.encode())).decode(), user.account))
-    else:
-        with get_db() as db:
+
+    with get_db() as db:
+        if skip_input:
             users = db.query(User).all()
-            for user in users:
-                user_data.append((user.name, user.dp, user.boid, (fernet.decrypt(user.passsword.encode())).decode(), user.crn, (fernet.decrypt(user.pin.encode())).decode(), user.account))
-
-
+        else:
+            users = db.query(User).filter(User.name == user).first()
+        if not users:
+            log.debug("No users available")
+            return
+        user_data = [[user.name, user.dp, user.boid, (fernet.decrypt(user.passsword.encode())).decode(), user.crn, (fernet.decrypt(user.pin.encode())).decode(), user.account, user.id] for user in users]
+        
     start_time = perf_counter()
     executor = ThreadPoolExecutor()
     # print(executor._max_workers)
@@ -356,8 +343,7 @@ def main(default, headless):
     for user in user_data:
         executor.submit(start, user, lock, headless)
         sleep(WAIT_TIME)
-
-    executor.shutdown()
+    executor.shutdown(wait=True)
     end_time = perf_counter()
 
     time_delta = end_time - start_time
@@ -365,28 +351,3 @@ def main(default, headless):
     with lock:
         log.info(f"Completed :: {minutes:.0f} minutes | {seconds:.1f} seconds")
     return
-
-
-if __name__ == "__main__":
-    try:
-        parser = argparse.ArgumentParser()
-        parser.add_argument(
-        "--default",
-        type=bool,
-        default=False,
-        help="Whether to use default values or not",
-        )
-        parser.add_argument(
-        "--headless",
-        type=bool,
-        default=True,
-        help="Whether to use headless browser",
-        )
-        args = parser.parse_args()
-        main(args.default, args.headless)
-    except KeyboardInterrupt:
-        input("Interrupted!!!")
-        try:
-            exit(0)
-        except SystemExit:
-            os._exit(0)
