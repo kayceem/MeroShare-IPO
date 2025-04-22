@@ -14,7 +14,7 @@ from selenium.webdriver.common.keys import Keys
 
 from database.database import get_db
 from database.models import Application, User
-from utils.utils import create_browser, get_dir_path, get_fernet_key, get_logger 
+from utils.utils import create_browser, get_dir_path, get_fernet_key, get_logger, get_time
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -36,7 +36,9 @@ bank_id = {"11500": "49", "17300": "42", "10400": "37", "13700": "44", "12600": 
 
 
 def save_screenshot(browser, NAME, name, share_applied):
-    filename = f"{DIR_PATH}/screenshots/{name}/{NAME}_{share_applied}.png"
+    now = get_time()
+    filename = f"{DIR_PATH}/screenshots/{name}/[{now}]{NAME}-{share_applied}.png"
+    
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     browser.get("https://meroshare.cdsc.com.np/#/asba")
     sleep(2)
@@ -61,7 +63,7 @@ def update_database(username,user_id, applied_shares):
 
 def apply_share(browser, CRN, PIN, DP, ipo, ACCOUNT_NUMBER):
     try:
-        check = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.ID, "selectBank")))
+        check = WebDriverWait(browser, 10).until(EC.presence_of_element_located((By.ID, "selectBank")))
     except:
         return False
     """
@@ -113,7 +115,12 @@ def apply_share(browser, CRN, PIN, DP, ipo, ACCOUNT_NUMBER):
         browser.find_element(By.XPATH, "/html/body/app-dashboard/div/main/div/app-issue/div/wizard/div/wizard-step[2]/div[2]/div/form/div[2]/div/div/div/button[1]").click()
     except:
         browser.find_element(By.XPATH, "/html/body/app-dashboard/div/main/div/app-re-apply/div/div/wizard/div/wizard-step[2]/div[2]/div/form/div[2]/div/div/div/button[1]").click()
-
+    try:
+        toast = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "toast-message")))
+        if not "Share has been applied successfully." in toast.text:
+            return False
+    except: 
+        return False
     sleep(3)
     return int(text)
 
@@ -263,17 +270,17 @@ def start(user, lock, headless):
         for attempt in range(4):
             try:
                 browser.get("https://meroshare.cdsc.com.np/#/login")
+                WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.ID, "username")))
                 with lock:
                     log.info(f"Connection established for user {NAME} ")
                 sleep(0.5)
-                WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.ID, "username")))
                 break
             except Exception as e:
                 with lock:
                     log.info(f"Connection attempt {attempt + 1} failed for user {NAME}")
                 if attempt == 3:
                     with lock:
-                        log.info(f"Connection could not be established for user {NAME} after 4 attempts")
+                        log.info(f"Connection could not be established for user {NAME} after {attempt} attempts")
                     return False
 
         for attempt in range(4):
@@ -285,7 +292,14 @@ def start(user, lock, headless):
                     log.info(f"Logged in for {NAME} ")
                 break
             except:
-                browser.get_screenshot_as_file(f"Errors/{NAME.lower()}_{login_failed}.png")
+                current_url = browser.current_url
+                if "accountExpire" in current_url:
+                    save_screenshot(browser, NAME.lower(), "Expired", USERNAME)
+                    account = current_url.split("/")[-1]
+                    with lock:
+                        log.error(f"{account}Account expired for {NAME}")
+                    return False
+                save_screenshot(browser, NAME.lower(), "Login", USERNAME)
                 browser.get("https://meroshare.cdsc.com.np/#/login")
                 login_failed += 1
                 with lock:
@@ -329,12 +343,13 @@ def ipo(skip_input, headless):
     with get_db() as db:
         if skip_input:
             users = db.query(User).all()
+            if not users:
+                log.debug("No users available")
+                return
+            user_data = [[user.name, user.dp, user.boid, (fernet.decrypt(user.passsword.encode())).decode(), user.crn, (fernet.decrypt(user.pin.encode())).decode(), user.account, user.id] for user in users]
         else:
             users = db.query(User).filter(User.name == user).first()
-        if not users:
-            log.debug("No users available")
-            return
-        user_data = [[user.name, user.dp, user.boid, (fernet.decrypt(user.passsword.encode())).decode(), user.crn, (fernet.decrypt(user.pin.encode())).decode(), user.account, user.id] for user in users]
+            user_data = [[users.name, users.dp, users.boid, (fernet.decrypt(users.passsword.encode())).decode(), users.crn, (fernet.decrypt(users.pin.encode())).decode(), users.account, users.id]]
         
     start_time = perf_counter()
     executor = ThreadPoolExecutor()
