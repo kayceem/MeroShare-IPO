@@ -15,4 +15,4 @@ __pycache__/
 screenshots/
 logs/
 .vscode/
-data.csv
+csv/

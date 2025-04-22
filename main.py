@@ -9,7 +9,7 @@ import logging
 
 from utils.utils import get_logger
 
-log = get_logger("main", logging.INFO)
+# log = get_logger("main", logging.INFO)
 
 if __name__ == "__main__":
     try:
@@ -19,14 +19,12 @@ if __name__ == "__main__":
         ipo_parser = subparsers.add_parser("ipo")
         ipo_parser.add_argument(
             "--skipinput",
-            type=bool,
-            default=True,
+            action="store_false",
             help="Whether to ask for input from user",
         )
         ipo_parser.add_argument(
-            "--headless",
-            type=bool,
-            default=True,
+            "--noheadless",
+            action="store_false",
             help="Whether to use headless browser",
         )
 
@@ -34,7 +32,7 @@ if __name__ == "__main__":
         args = parser.parse_args()
 
         if args.command == "ipo":
-            ipo(args.skipinput, args.headless)
+            ipo(args.skipinput, args.noheadless)
         elif args.command == "ipo-results":
             ipo_result()
         else:
@@ -46,7 +44,8 @@ if __name__ == "__main__":
         except SystemExit:
             os._exit(0)
     except Exception as e:
-        log.error(e)
+        # log.error(e)
+        pass
         try:
             exit(1)
         except SystemExit:
