@@ -1,5 +1,6 @@
 import os
 import logging
+import datetime
 from dotenv import load_dotenv
 from cryptography.fernet import Fernet
 from pathlib import Path
@@ -65,3 +66,6 @@ def get_fernet_key():
     if not key:
         return None
     return Fernet(key)
+
+def get_time():
+    return datetime.datetime.now().strftime("%Y-%m-%d-%H")
