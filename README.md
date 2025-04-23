@@ -1,33 +1,28 @@
 
 ```
-MeroShareIPO
-├─ .py files
-│  ├─ auto_ipo.py
-│  ├─ Check IPO.py
-│  ├─ generator.py
-│  ├─ icon.ico
-│  ├─ IPO Result.py
-│  └─ IPO.py
-├─ AutoIPO.exe
-├─ AutoIPO.lnk
-├─ Backup
-│  ├─ backup dataBase.txt
-│  └─ key.key
-├─ banks.txt
-├─ Check IPO.exe
-├─ Errors
-├─ generator.exe
-├─ IPO Result.exe
-├─ IPO.exe
+MeroShare-IPO
 ├─ README.md
+├─ __init__.py
+├─ csv
+├─ database
+│  ├─ __init__.py
+│  ├─ database.py
+│  └─ models.py
+├─ main.py
+├─ pyproject.toml
 ├─ requirements.txt
-├─ Results
-│  ├─ Applied.txt
-│  ├─ logs.txt
-│  ├─ Results.txt
-│  └─ Upcoming IPO.txt
-└─ Source Files
-   ├─ dataBase.txt
-   └─ key.key
+├─ scripts
+│  ├─ __init__.py
+│  ├─ auto_ipo.py
+│  ├─ check_ipo.py
+│  ├─ edis.py
+│  ├─ generator.py
+│  ├─ ipo.py
+│  └─ ipo_result.py
+├─ utils
+│  ├─ __init__.py
+│  ├─ chrome_helper.py
+│  └─ utils.py
+└─ uv.lock
 
 ```
