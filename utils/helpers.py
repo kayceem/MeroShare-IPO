@@ -19,7 +19,7 @@ def create_browser(headless: bool = True):
         BINARY_PATH = get_dir_path() / "chrome/chrome"
         DRIVER_PATH = get_dir_path() / "chrome/chromedriver"
         if not BINARY_PATH.exists() or not DRIVER_PATH.exists():
-            setup_chrome_and_driver()
+            setup_chrome_and_driver(get_dir_path())
         if not BINARY_PATH.exists() or not DRIVER_PATH.exists():
             return False
         
@@ -61,11 +61,19 @@ def get_logger(app="app", level=logging.INFO):
     log = logging.getLogger(__name__)
     return log
 
-def get_fernet_key():
-    key = os.getenv("KEY")
+def get_fernet_key(key=None):
+    if not key:
+        key = os.getenv("KEY")
     if not key:
         return None
     return Fernet(key)
 
 def get_time():
-    return datetime.datetime.now().strftime("%Y-%m-%d-%H")
+    return datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+
+def encrypt_string(string: str, key=None):
+    fernet = get_fernet_key(key)
+    if not fernet:
+        return None
+    encrypted = fernet.encrypt(string.encode())
+    return encrypted.decode()

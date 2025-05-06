@@ -13,7 +13,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 from database.database import  get_db
 from database.models import  Result, User, UserResult
-from utils.utils import create_browser, get_dir_path, get_fernet_key, get_logger
+from utils.helpers import create_browser, get_dir_path, get_fernet_key, get_logger
 from dotenv import load_dotenv
 
 load_dotenv()

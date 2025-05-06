@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from contextlib import contextmanager
-from utils.utils import get_dir_path
+from utils.helpers import get_dir_path
 
 DIR_PATH = get_dir_path()
 CONNECTION_URI = f'sqlite:///{DIR_PATH}/database.sqlite3'

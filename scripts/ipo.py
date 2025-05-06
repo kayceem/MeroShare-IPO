@@ -14,7 +14,7 @@ from selenium.webdriver.common.keys import Keys
 
 from database.database import get_db
 from database.models import Application, User
-from utils.utils import create_browser, get_dir_path, get_fernet_key, get_logger, get_time
+from utils.helpers import create_browser, get_dir_path, get_fernet_key, get_logger, get_time
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -35,13 +35,10 @@ DATA = []
 bank_id = {"11500": "49", "17300": "42", "10400": "37", "13700": "44", "12600": "48", "11000": "45"}
 
 
-def save_screenshot(browser, NAME, name, share_applied):
+def save_screenshot(browser, NAME, name, share_applied=""):
     now = get_time()
-    filename = f"{DIR_PATH}/screenshots/{name}/[{now}]{NAME}-{share_applied}.png"
-    
+    filename = f"{DIR_PATH}/screenshots/{name}/{share_applied}/{NAME}-[{now}].png"
     os.makedirs(os.path.dirname(filename), exist_ok=True)
-    browser.get("https://meroshare.cdsc.com.np/#/asba")
-    sleep(2)
     browser.save_screenshot(filename)
     return
 
@@ -138,20 +135,15 @@ def check_to_apply(browser, user, info, lock):
         except:
             name = data[0]
             button = "No button"
-            with lock:
-                log.info(f"Already applied for {NAME} : {name} | {button} ")
+            log.info(f"Already applied for {NAME} : {name} | {button} ")
 
             continue
         if not share_type == "Ordinary Shares" and "Local" not in share_type:
-            with lock:
-                log.info(f"Not applied for {NAME} : {share_type} | {name}")
-
+            log.info(f"Not applied for {NAME} : {share_type} | {name}")
             continue
 
         if button == "Edit":
-            with lock:
-                log.info(f"Already applied for {NAME} : {name} : {button}")
-
+            log.info(f"Already applied for {NAME} : {name} : {button}")
             continue
 
         # Checking if the share is IPO | can be applied | and is not debenture
@@ -170,15 +162,13 @@ def check_to_apply(browser, user, info, lock):
                 share_applied = apply_share(browser, CRN, PIN, DP, ipo, ACCOUNT_NUMBER)
                 if share_applied:
                     save_screenshot(browser, NAME, name, share_applied)
-                    with lock:
-                        log.info(f"Applied shares for {NAME} : {name} : {share_applied} shares")
+                    log.info(f"Applied shares for {NAME} : {name} : {share_applied} shares")
                     quantities.append(share_applied)
                     applied_shares.append(data)
                     break
             except Exception as e:
                 browser.get(browser.current_url)
-            with lock:
-                log.info(f"Could not apply {NAME} : {name} (Attempt {attempt + 1})")
+            log.info(f"Could not apply {NAME} : {name} (Attempt {attempt + 1})")
                 
     with lock:
         update_database(NAME,USER_ID,applied_shares)
@@ -192,9 +182,7 @@ def check_for_companies(browser, lock, NAME):
     browser.get("https://meroshare.cdsc.com.np/#/asba")
     try:
         WebDriverWait(browser, 2).until(EC.presence_of_element_located((By.XPATH, "/html/body/div/div/div/button"))).click()
-        with lock:
-            log.info(f"User was unauthorized  {NAME} ")
-
+        log.info(f"User was unauthorized  {NAME} ")
         return "not_authorized"
     except:
         pass
@@ -206,21 +194,15 @@ def check_for_companies(browser, lock, NAME):
             WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "company-list")))
             # gets lists of web element
             shares_available = browser.find_elements(By.CLASS_NAME, "company-list")
-            with lock:
-                log.info(f"Got Companies for {NAME} ")
-                print(f"Got Companies for {NAME} ")
+            log.info(f"Got Companies for {NAME} ")
             break
         except:
-            with lock:
-                log.info(f"Tried to get Companies for {NAME} ({attempt})")
-                print(f"Tried to get Companies for {NAME} ({attempt})")
+            log.info(f"Tried to get Companies for {NAME} ({attempt})")
             browser.get("https://meroshare.cdsc.com.np/#/asba")
             sleep(2 + attempt)
 
         if attempt == 4:
-            with lock:
-                log.info(f"No Comapnies available/loaded  {NAME} ")
-                print(f"No Comapnies available/loaded  {NAME} ")
+            log.info(f"No Comapnies available/loaded  {NAME} ")
             return False
         
     # Storing all the information of comapnies from the web elements as list in a list : info
@@ -271,16 +253,13 @@ def start(user, lock, headless):
             try:
                 browser.get("https://meroshare.cdsc.com.np/#/login")
                 WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.ID, "username")))
-                with lock:
-                    log.info(f"Connection established for user {NAME} ")
+                log.info(f"Connection established for user {NAME} ")
                 sleep(0.5)
                 break
             except Exception as e:
-                with lock:
-                    log.info(f"Connection attempt {attempt + 1} failed for user {NAME}")
+                log.info(f"Connection attempt {attempt + 1} failed for user {NAME}")
                 if attempt == 3:
-                    with lock:
-                        log.info(f"Connection could not be established for user {NAME} after {attempt} attempts")
+                    log.info(f"Connection could not be established for user {NAME} after {attempt} attempts")
                     return False
 
         for attempt in range(4):
@@ -288,42 +267,42 @@ def start(user, lock, headless):
                 logged_in = login(browser, DP, USERNAME, PASSWD)
                 if not logged_in:
                     raise Exception
-                with lock:
-                    log.info(f"Logged in for {NAME} ")
+                log.info(f"Logged in for {NAME} ")
                 break
             except:
                 current_url = browser.current_url
                 if "accountExpire" in current_url:
-                    save_screenshot(browser, NAME.lower(), "Expired", USERNAME)
+                    save_screenshot(browser, NAME.lower(), "Expired")
                     account = current_url.split("/")[-1]
-                    with lock:
-                        log.error(f"{account}Account expired for {NAME}")
+                    log.error(f"{account}  for {NAME}")
                     return False
-                save_screenshot(browser, NAME.lower(), "Login", USERNAME)
+
+                if "PasswordChange" in current_url:
+                    save_screenshot(browser, NAME.lower(), "PasswordChange")
+                    account = current_url.split("/")[-1]
+                    log.error(f"{account} for {NAME}")
+                    return False
+                
+                save_screenshot(browser, NAME.lower(), f"Login")
                 browser.get("https://meroshare.cdsc.com.np/#/login")
                 login_failed += 1
-                with lock:
-                    log.info(f"Problem Logging in {NAME}")
+                log.info(f"Problem Logging in {NAME}")
 
         # Checks for companies available
         if logged_in:
             companies_available = check_for_companies(browser, lock, NAME)
             if companies_available == "not_authorized":
-                with lock:
-                    log.info(f"User unauthorized {NAME}")
+                log.info(f"User unauthorized {NAME}")
                 return False
 
         if not companies_available:
-            with lock:
-                log.info(f"Exited for user {NAME}")
+            log.info(f"Exited for user {NAME}")
             return False
 
-        #  Tries to apply available companies
         check_to_apply(browser, user, companies_available, lock)
 
         # Quiting the browser
-        with lock:
-            log.info(f"Completed for user {NAME} ")
+        log.info(f"Completed for user {NAME} ")
         return True
 
 
@@ -350,7 +329,7 @@ def ipo(skip_input, headless):
         else:
             users = db.query(User).filter(User.name == user).first()
             user_data = [[users.name, users.dp, users.boid, (fernet.decrypt(users.passsword.encode())).decode(), users.crn, (fernet.decrypt(users.pin.encode())).decode(), users.account, users.id]]
-        
+
     start_time = perf_counter()
     executor = ThreadPoolExecutor()
     # print(executor._max_workers)
@@ -363,6 +342,5 @@ def ipo(skip_input, headless):
 
     time_delta = end_time - start_time
     minutes, seconds = divmod(time_delta, 60)
-    with lock:
-        log.info(f"Completed :: {minutes:.0f} minutes | {seconds:.1f} seconds")
+    log.info(f"Completed :: {minutes:.0f} minutes | {seconds:.1f} seconds")
     return

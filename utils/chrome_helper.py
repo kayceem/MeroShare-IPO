@@ -2,8 +2,6 @@ import os
 import shutil
 import requests
 import zipfile
-from pathlib import Path
-from utils.utils import get_dir_path
 
 def download_file(url, destination):
     """Download a file from a URL to a specified destination."""
@@ -13,9 +11,9 @@ def download_file(url, destination):
         for chunk in response.iter_content(8192):
             file.write(chunk)
 
-def setup_chrome_and_driver():
+def setup_chrome_and_driver(path):
     """Download Chrome and ChromeDriver, and place them in a 'chrome' folder."""
-    chrome_folder = os.path.join(get_dir_path(), "chrome")
+    chrome_folder = os.path.join(path, "chrome")
     chrome_folder.mkdir(exist_ok=True)
 
     chrome_url = "https://storage.googleapis.com/chrome-for-testing-public/130.0.6723.91/linux64/chrome-linux64.zip"

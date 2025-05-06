@@ -5,9 +5,10 @@ from sys import exit
 import os
 from scripts.ipo import ipo
 from scripts.ipo_result import ipo_result
+from scripts.edis import edis
 import logging
 
-from utils.utils import get_logger
+from utils.helpers import get_logger
 
 # log = get_logger("main", logging.INFO)
 
@@ -28,6 +29,18 @@ if __name__ == "__main__":
             help="Whether to use headless browser",
         )
 
+        edis_parser = subparsers.add_parser("edis")
+        edis_parser.add_argument(
+            "--noskipinput",
+            action="store_false",
+            help="Whether to ask for input from user",
+        )
+        edis_parser.add_argument(
+            "--noheadless",
+            action="store_false",
+            help="Whether to use headless browser",
+        )
+
         ipo_results_parser = subparsers.add_parser("ipo-results")
         args = parser.parse_args()
 
@@ -35,6 +48,8 @@ if __name__ == "__main__":
             ipo(args.skipinput, args.noheadless)
         elif args.command == "ipo-results":
             ipo_result()
+        elif args.command == "edis":
+            edis(args.noskipinput, args.noheadless)
         else:
             parser.print_help()
     except KeyboardInterrupt:
